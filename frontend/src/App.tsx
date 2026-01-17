@@ -1,10 +1,11 @@
 import { useState, useEffect, FC, ReactNode } from 'react';
-import { BrowserRouter as Router, Routes, Route, Navigate, Link } from 'react-router-dom';
+import { BrowserRouter as Router, Routes, Route, Navigate, Link, useLocation } from 'react-router-dom';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import Login from './pages/Login';
 import Dashboard from './pages/Dashboard';
 import Accounts from './pages/Accounts';
 import Transactions from './pages/Transactions';
+import Planning from './pages/Planning';
 
 interface PrivateRouteProps {
   children: ReactNode;
@@ -21,7 +22,31 @@ interface LayoutProps {
 
 const Layout: FC<LayoutProps> = ({ children }) => {
     const { logout, user } = useAuth();
+    const location = useLocation();
     const [theme, setTheme] = useState(localStorage.getItem('theme') || 'light');
+
+    const isActive = (path: string, search?: string) => {
+        if (search) {
+            return location.pathname === path && location.search.includes(search);
+        }
+        return location.pathname === path && !location.search;
+    };
+
+    const linkClass = (path: string, search?: string) => {
+        const active = isActive(path, search);
+        return `relative py-2 text-sm font-bold transition-all ${
+            active 
+            ? 'text-blue-600 dark:text-blue-400' 
+            : 'text-gray-700 dark:text-gray-200 hover:text-blue-600 dark:hover:text-blue-400'
+        }`;
+    };
+
+    const indicatorClass = (path: string, search?: string) => {
+        return `absolute bottom-0 left-0 w-full h-0.5 bg-blue-600 transition-all duration-300 transform ${
+            isActive(path, search) ? 'scale-x-100' : 'scale-x-0'
+        }`;
+    };
+
 
     useEffect(() => {
         const root = document.documentElement;
@@ -44,15 +69,33 @@ const Layout: FC<LayoutProps> = ({ children }) => {
             <nav className="sticky top-0 z-50 bg-white/80 dark:bg-gray-800/80 backdrop-blur-md border-b border-gray-200 dark:border-gray-700">
                 <div className="container mx-auto px-4 sm:px-6 lg:px-8">
                     <div className="flex justify-between items-center h-16">
-                        <div className="flex items-center space-x-4">
+                        <div className="flex items-center">
                              <Link to="/" className="text-2xl font-black bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent">
                                 Personance
                              </Link>
-                             <div className="hidden md:flex space-x-6">
-                                <Link to="/" className="text-sm text-gray-700 dark:text-gray-200 hover:text-blue-600 dark:hover:text-blue-400 font-bold transition-colors">Dashboard</Link>
-                                <Link to="/accounts" className="text-sm text-gray-700 dark:text-gray-200 hover:text-blue-600 dark:hover:text-blue-400 font-bold transition-colors">Accounts</Link>
-                                <Link to="/transactions" className="text-sm text-gray-700 dark:text-gray-200 hover:text-blue-600 dark:hover:text-blue-400 font-bold transition-colors">Transactions</Link>
-                             </div>
+                        </div>
+
+                        <div className="hidden md:flex flex-1 justify-center space-x-10">
+                                <Link to="/" className={linkClass('/')}>
+                                    Dashboard
+                                    <span className={indicatorClass('/')}></span>
+                                </Link>
+                                <Link to="/accounts" className={linkClass('/accounts')}>
+                                    Accounts
+                                    <span className={indicatorClass('/accounts')}></span>
+                                </Link>
+                                <Link to="/transactions" className={linkClass('/transactions')}>
+                                    Transactions
+                                    <span className={indicatorClass('/transactions')}></span>
+                                </Link>
+                                <Link to="/planning?tab=budget" className={linkClass('/planning', 'tab=budget')}>
+                                    Budget
+                                    <span className={indicatorClass('/planning', 'tab=budget')}></span>
+                                </Link>
+                                <Link to="/planning?tab=goal" className={linkClass('/planning', 'tab=goal')}>
+                                    Goal
+                                    <span className={indicatorClass('/planning', 'tab=goal')}></span>
+                                </Link>
                         </div>
                         
                         <div className="flex items-center space-x-2 sm:space-x-4">
@@ -64,6 +107,7 @@ const Layout: FC<LayoutProps> = ({ children }) => {
                             >
                                 {theme === 'light' ? 'Dark Mode' : 'Light Mode'}
                             </button>
+
 
                             <div className="h-8 w-px bg-gray-200 dark:bg-gray-700 mx-2 hidden sm:block"></div>
 
@@ -83,6 +127,8 @@ const Layout: FC<LayoutProps> = ({ children }) => {
                     <Link to="/" className="text-[10px] font-black uppercase text-gray-500 dark:text-gray-400 hover:text-blue-600">Dashboard</Link>
                     <Link to="/accounts" className="text-[10px] font-black uppercase text-gray-500 dark:text-gray-400 hover:text-blue-600">Accounts</Link>
                     <Link to="/transactions" className="text-[10px] font-black uppercase text-gray-500 dark:text-gray-400 hover:text-blue-600">Transactions</Link>
+                    <Link to="/planning?tab=budget" className="text-[10px] font-black uppercase text-gray-500 dark:text-gray-400 hover:text-blue-600">Budget</Link>
+                    <Link to="/planning?tab=goal" className="text-[10px] font-black uppercase text-gray-500 dark:text-gray-400 hover:text-blue-600">Goal</Link>
                 </div>
             </nav>
             <main className="container mx-auto px-4 sm:px-6 lg:px-8 py-8">
@@ -119,6 +165,14 @@ function App() {
               </Layout>
             </PrivateRoute>
           } />
+            <Route path="/planning" element={
+            <PrivateRoute>
+              <Layout>
+                <Planning />
+              </Layout>
+            </PrivateRoute>
+          } />
+          <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
       </AuthProvider>
     </Router>

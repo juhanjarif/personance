@@ -54,8 +54,8 @@ CREATE TABLE IF NOT EXISTS budgets (
     budget_id SERIAL PRIMARY KEY,
     user_id INT REFERENCES users(user_id) ON DELETE CASCADE,
     category_id INT REFERENCES categories(category_id) ON DELETE CASCADE,
-    month INT CHECK (month BETWEEN 1 AND 12),
-    year INT,
+    start_date DATE NOT NULL,
+    end_date DATE NOT NULL,
     amount_limit DECIMAL(15, 2) NOT NULL,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );

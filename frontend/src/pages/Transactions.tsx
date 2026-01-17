@@ -20,6 +20,23 @@ interface Transaction {
   account_name: string;
   amount: string;
   transaction_type: 'income' | 'expense' | 'transfer';
+  transaction_date: string; // Added for budget check
+}
+
+interface Budget {
+  budget_id: number;
+  category_id: number | null;
+  amount_limit: string;
+  start_date: string;
+  end_date: string;
+  created_at: string;
+}
+
+interface Goal {
+  financial_goal_id: number;
+  goal_name: string;
+  target_amount: string;
+  created_at: string;
 }
 
 const Transactions: FC = () => {
@@ -78,6 +95,50 @@ const Transactions: FC = () => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    
+    // Budget check for expenses
+    if (formData.type === 'expense') {
+        try {
+            const budgetsRes = await api.get<Budget[]>('/finance/budgets');
+            const totalBudget = budgetsRes.data.find(b => b.category_id === null);
+            
+            if (totalBudget) {
+              const bCreated = new Date(totalBudget.created_at);
+              const bStart = new Date(totalBudget.start_date);
+              const bEnd = new Date(totalBudget.end_date);
+              const today = new Date();
+
+              // Only check if today is within the budget period
+              if (today >= bStart && today <= bEnd) {
+                const txRes = await api.get<Transaction[]>('/transactions');
+                const spentSoFar = txRes.data
+                  .filter(t => {
+                    const tDate = new Date(t.created_at); // Assuming transaction_date is stored in created_at for simplicity, or add a new field
+                    const tCreated = new Date(t.created_at);
+                    return t.transaction_type === 'expense' && 
+                           tDate >= bStart && 
+                           tDate <= bEnd && 
+                           tCreated >= bCreated;
+                  })
+                  .reduce((sum, t) => sum + parseFloat(t.amount), 0);
+
+                if (spentSoFar + parseFloat(formData.amount) > parseFloat(totalBudget.amount_limit)) {
+                    if (!window.confirm(`This expense exceeds your budget (Tk. ${totalBudget.amount_limit}). Proceed anyway?`)) {
+                        return;
+                    }
+                    const adjust = window.confirm("Limit reached. Would you like to adjust your budget now? (Cancel to remove budget entirely)");
+                    if (adjust) {
+                        navigate('/planning');
+                        return;
+                    } else {
+                        await api.delete(`/finance/budgets/${totalBudget.budget_id}`);
+                    }
+                }
+              }
+            }
+        } catch (err) { console.error(err); }
+    }
+
     try {
       await api.post('/transactions', formData); 
       setShowForm(false);
@@ -90,9 +151,41 @@ const Transactions: FC = () => {
         toAccountId: ''
       });
       fetchTransactions();
+      checkForGoalMet();
     } catch (err: any) {
       console.error(err);
       alert(err.response?.data?.message || 'Error creating transaction.');
+    }
+  };
+
+  const checkForGoalMet = async () => {
+    try {
+      const [goalsRes, txRes] = await Promise.all([
+        api.get<Goal[]>('/finance/goals'),
+        api.get<Transaction[]>('/transactions')
+      ]);
+      
+      for (const goal of goalsRes.data) {
+        const goalCreated = new Date(goal.created_at);
+        const goalTxs = txRes.data.filter(t => new Date(t.created_at) >= goalCreated);
+        
+        const goalProgressBalance = goalTxs.reduce((sum, t) => {
+            if (t.transaction_type === 'income') return sum + parseFloat(t.amount);
+            if (t.transaction_type === 'expense') return sum - parseFloat(t.amount);
+            return sum;
+        }, 0);
+
+        if (goalProgressBalance >= parseFloat(goal.target_amount)) {
+          // Immediately delete so it doesn't trigger again on next poll/action
+          await api.delete(`/finance/goals/${goal.financial_goal_id}`);
+          
+          alert(`Congratulations! You've met your goal: ${goal.goal_name}`);
+          
+          fetchTransactions();
+        }
+      }
+    } catch (err) {
+      console.error(err);
     }
   };
 
