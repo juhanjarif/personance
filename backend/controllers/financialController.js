@@ -64,27 +64,6 @@ const deleteGoal = async (req, res) => {
     }
 };
 
-const createLoan = async (req, res) => {
-    const { loanName, principalAmount, interestRate, startDate } = req.body;
-    const userId = req.user.id;
-    try {
-        const loan = await financialModel.createLoan(userId, loanName, principalAmount, interestRate, startDate);
-        res.status(201).json(loan);
-    } catch (error) {
-        res.status(500).json({ message: 'Server error' });
-    }
-};
-
-const getLoans = async (req, res) => {
-    const userId = req.user.id;
-    try {
-        const loans = await financialModel.getLoans(userId);
-        res.json(loans);
-    } catch (error) {
-        res.status(500).json({ message: 'Server error' });
-    }
-};
-
 const getCategories = async (req, res) => {
     const userId = req.user.id;
     try {
@@ -102,7 +81,5 @@ module.exports = {
   createGoal,
   getGoals,
   deleteGoal,
-  createLoan,
-  getLoans,
   getCategories
 };

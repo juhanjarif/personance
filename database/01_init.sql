@@ -60,17 +60,6 @@ CREATE TABLE IF NOT EXISTS budgets (
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
-CREATE TABLE IF NOT EXISTS loans (
-    loan_id SERIAL PRIMARY KEY,
-    user_id INT REFERENCES users(user_id) ON DELETE CASCADE,
-    loan_name VARCHAR(100) NOT NULL,
-    principal_amount DECIMAL(15, 2) NOT NULL,
-    interest_rate DECIMAL(5, 2) DEFAULT 0.00,
-    start_date DATE NOT NULL,
-    end_date DATE,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-);
-
 CREATE TABLE IF NOT EXISTS financial_goals (
     financial_goal_id SERIAL PRIMARY KEY,
     user_id INT REFERENCES users(user_id) ON DELETE CASCADE,

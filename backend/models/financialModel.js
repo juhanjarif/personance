@@ -50,19 +50,6 @@ const deleteBudget = async (budgetId, userId) => {
     return result.rows[0];
 };
 
-const createLoan = async (userId, loanName, principalAmount, interestRate, startDate) => {
-    const query = 'INSERT INTO loans (user_id, loan_name, principal_amount, interest_rate, start_date) VALUES ($1, $2, $3, $4, $5) RETURNING *';
-    const values = [userId, loanName, principalAmount, interestRate, startDate];
-    const result = await db.query(query, values);
-    return result.rows[0];
-};
-
-const getLoans = async (userId) => {
-    const query = 'SELECT * FROM loans WHERE user_id = $1';
-    const result = await db.query(query, [userId]);
-    return result.rows;
-};
-
 const getCategories = async (userId) => {
   const query = 'SELECT * FROM categories WHERE user_id = $1 OR user_id IS NULL';
   const result = await db.query(query, [userId]);
@@ -76,7 +63,5 @@ module.exports = {
   createGoal,
   getGoals,
   deleteGoal,
-  createLoan,
-  getLoans,
   getCategories
 };

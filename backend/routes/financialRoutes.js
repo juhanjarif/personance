@@ -13,10 +13,6 @@ router.post('/goals', authenticateToken, financialController.createGoal);
 router.get('/goals', authenticateToken, financialController.getGoals);
 router.delete('/goals/:id', authenticateToken, financialController.deleteGoal);
 
-// Loans
-router.post('/loans', authenticateToken, financialController.createLoan);
-router.get('/loans', authenticateToken, financialController.getLoans);
-
 // Categories
 router.get('/categories', authenticateToken, financialController.getCategories);
 
