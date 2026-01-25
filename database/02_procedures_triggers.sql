@@ -88,3 +88,47 @@ CREATE TRIGGER audit_log_trigger
 AFTER INSERT ON transactions
 FOR EACH ROW
 EXECUTE FUNCTION log_audit();
+
+CREATE OR REPLACE FUNCTION validate_loan()
+RETURNS TRIGGER AS $$
+BEGIN
+    IF NEW.principal_amount <= 0 THEN
+        RAISE EXCEPTION 'Principal amount must be positive';
+    END IF;
+
+    IF NEW.due_date < NEW.start_date THEN
+        RAISE EXCEPTION 'Due date cannot be earlier than start date';
+    END IF;
+
+    RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+CREATE TRIGGER loan_validation
+BEFORE INSERT OR UPDATE ON loans
+FOR EACH ROW
+EXECUTE FUNCTION validate_loan();
+
+CREATE OR REPLACE FUNCTION log_loan_audit()
+RETURNS TRIGGER AS $$
+BEGIN
+    IF (TG_OP = 'INSERT') THEN
+        INSERT INTO audit_logs (user_id, action_type, details)
+        VALUES (NEW.user_id, 'INSERT', 'New loan created. Amount: ' || NEW.principal_amount || ', Purpose: ' || NEW.purpose);
+    ELSIF (TG_OP = 'UPDATE') THEN
+        IF OLD.status != NEW.status THEN
+            INSERT INTO audit_logs (user_id, action_type, details)
+            VALUES (NEW.user_id, 'UPDATE', 'Loan status changed from ' || OLD.status || ' to ' || NEW.status || ' (ID: ' || NEW.loan_id || ')');
+        END IF;
+    ELSIF (TG_OP = 'DELETE') THEN
+        INSERT INTO audit_logs (user_id, action_type, details)
+        VALUES (OLD.user_id, 'DELETE', 'Loan deleted. Amount: ' || OLD.principal_amount || ' (ID: ' || OLD.loan_id || ')');
+    END IF;
+    RETURN NULL;
+END;
+$$ LANGUAGE plpgsql;
+
+CREATE TRIGGER loan_audit_trigger
+AFTER INSERT OR UPDATE OR DELETE ON loans
+FOR EACH ROW
+EXECUTE FUNCTION log_loan_audit();

@@ -18,11 +18,13 @@ const authRoutes = require('./routes/authRoutes');
 const accountRoutes = require('./routes/accountRoutes');
 const transactionRoutes = require('./routes/transactionRoutes');
 const financialRoutes = require('./routes/financialRoutes');
+const loanRoutes = require('./routes/loanRoutes');
 
 app.use('/api/auth', authRoutes);
 app.use('/api/accounts', accountRoutes);
 app.use('/api/transactions', transactionRoutes);
 app.use('/api/finance', financialRoutes);
+app.use('/api/loans', loanRoutes);
 
 app.listen(PORT, () => {
     console.log(`Server is running on port ${PORT}`);

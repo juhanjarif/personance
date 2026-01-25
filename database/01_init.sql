@@ -86,3 +86,20 @@ CREATE TABLE IF NOT EXISTS audit_logs (
     details TEXT,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
+
+CREATE TABLE IF NOT EXISTS loans (
+    loan_id SERIAL PRIMARY KEY,
+    user_id INT REFERENCES users(user_id) ON DELETE CASCADE,
+    lender_name VARCHAR(255) NOT NULL,
+    purpose VARCHAR(255) NOT NULL,
+    principal_amount DECIMAL(12, 2) NOT NULL,
+    interest_rate DECIMAL(5, 2) NOT NULL,
+    interest_type VARCHAR(50) NOT NULL,
+    payment_frequency VARCHAR(50) NOT NULL,
+    start_date DATE NOT NULL,
+    due_date DATE NOT NULL,
+    grace_period_months INTEGER DEFAULT 0,
+    notes TEXT,
+    status VARCHAR(20) DEFAULT 'active',
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
