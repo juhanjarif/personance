@@ -71,3 +71,26 @@ module.exports = {
     deleteLoan,
     updateLoanStatus
 };
+
+const repayLoan = async (req, res) => {
+    try {
+        console.log('Repayment Request Body:', req.body);
+        const { loanId, accountId, amount } = req.body;
+        if (!loanId || !accountId || !amount) {
+            return res.status(400).json({ message: 'Missing required fields' });
+        }
+        await loanModel.repayLoan(req.user.id, loanId, accountId, amount);
+        res.json({ message: 'Repayment processed successfully' });
+    } catch (error) {
+        console.error('Repayment Logic Error:', error);
+        res.status(500).json({ message: error.message || 'Server error processing repayment' });
+    }
+};
+
+module.exports = {
+    createLoan,
+    getLoans,
+    deleteLoan,
+    updateLoanStatus,
+    repayLoan
+};

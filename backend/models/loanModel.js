@@ -16,6 +16,7 @@ const createLoansTable = async () => {
             grace_period_months INTEGER DEFAULT 0,
             notes TEXT,
             status VARCHAR(20) DEFAULT 'active', -- 'active', 'closed'
+            paid_amount DECIMAL(15, 2) DEFAULT 0.00,
             created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
         );
     `;
@@ -67,9 +68,16 @@ const updateLoanStatus = async (loanId, status) => {
     return result.rows[0];
 }
 
+const repayLoan = async (userId, loanId, accountId, amount) => {
+    const query = 'CALL process_loan_repayment($1, $2, $3, $4)';
+    await db.query(query, [loanId, accountId, amount, userId]);
+    return { success: true };
+};
+
 module.exports = {
     createLoan,
     getLoansByUserId,
     deleteLoan,
-    updateLoanStatus
+    updateLoanStatus,
+    repayLoan
 };

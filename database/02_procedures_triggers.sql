@@ -1,3 +1,16 @@
+DROP TRIGGER IF EXISTS balance_update ON transactions;
+DROP FUNCTION IF EXISTS update_balance();
+DROP PROCEDURE IF EXISTS fund_transfer(INT, INT, DECIMAL, INT, INT, INT);
+DROP TRIGGER IF EXISTS transaction_validation ON transactions;
+DROP FUNCTION IF EXISTS validate_transaction();
+DROP TRIGGER IF EXISTS audit_log_trigger ON transactions;
+DROP FUNCTION IF EXISTS log_audit();
+DROP TRIGGER IF EXISTS loan_validation ON loans;
+DROP FUNCTION IF EXISTS validate_loan();
+DROP TRIGGER IF EXISTS loan_audit_trigger ON loans;
+DROP FUNCTION IF EXISTS log_loan_audit();
+DROP PROCEDURE IF EXISTS process_loan_repayment(INT, INT, DECIMAL, INT);
+
 CREATE OR REPLACE FUNCTION update_balance() 
 RETURNS TRIGGER AS $$
 DECLARE
@@ -41,7 +54,7 @@ BEGIN
     SELECT account_name INTO receiver_name FROM accounts WHERE account_id = receiver_id;
 
     INSERT INTO transactions (user_id, account_id, category_id, amount, transaction_type, description)
-    VALUES (user_id, sender_id, sender_cat_id, transfer_amount, 'expense', 'Transfer Out to ' || receiver_name);
+    VALUES (user_id, sender_id, sender_cat_id, transfer_amount, 'expense', 'Transfer Out to ' || sender_name);
     
     INSERT INTO transactions (user_id, account_id, category_id, amount, transaction_type, description)
     VALUES (user_id, receiver_id, receiver_cat_id, transfer_amount, 'income', 'Transfer In from ' || sender_name);
@@ -132,3 +145,33 @@ CREATE TRIGGER loan_audit_trigger
 AFTER INSERT OR UPDATE OR DELETE ON loans
 FOR EACH ROW
 EXECUTE FUNCTION log_loan_audit();
+
+CREATE OR REPLACE PROCEDURE process_loan_repayment(
+    p_loan_id INT,
+    p_account_id INT,
+    p_amount DECIMAL,
+    p_user_id INT
+)
+LANGUAGE plpgsql
+AS $$
+DECLARE
+    v_loan_purpose VARCHAR;
+    v_account_name VARCHAR;
+    v_category_id INT;
+BEGIN
+    SELECT purpose INTO v_loan_purpose FROM loans WHERE loan_id = p_loan_id;
+    
+    SELECT account_name INTO v_account_name FROM accounts WHERE account_id = p_account_id;
+
+    SELECT category_id INTO v_category_id FROM categories WHERE user_id = p_user_id LIMIT 1;
+
+    INSERT INTO transactions (user_id, account_id, category_id, amount, transaction_type, description)
+    VALUES (p_user_id, p_account_id, v_category_id, p_amount, 'expense', 'Loan Repayment: ' || v_loan_purpose);
+
+    UPDATE loans 
+    SET paid_amount = COALESCE(paid_amount, 0) + p_amount 
+    WHERE loan_id = p_loan_id;
+
+    COMMIT;
+END;
+$$;

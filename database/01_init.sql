@@ -101,5 +101,6 @@ CREATE TABLE IF NOT EXISTS loans (
     grace_period_months INTEGER DEFAULT 0,
     notes TEXT,
     status VARCHAR(20) DEFAULT 'active',
+    paid_amount DECIMAL(15, 2) DEFAULT 0.00,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );

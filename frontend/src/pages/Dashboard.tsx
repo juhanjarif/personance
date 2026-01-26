@@ -41,6 +41,7 @@ interface Loan {
     status: 'active' | 'closed';
     payment_frequency: 'monthly' | 'quarterly';
     due_date: string;
+    paid_amount: string;
 }
 
 const Dashboard = () => {
@@ -230,8 +231,6 @@ const Dashboard = () => {
                     )}
                 </div>
 
-
-
                 <div className="p-8 rounded-3xl bg-amber-50 dark:bg-amber-900/10 border border-amber-100 dark:border-amber-700/50 shadow-sm relative overflow-hidden">
                     <div className="flex justify-between items-center mb-6">
                         <h3 className="text-[10px] font-black uppercase tracking-[0.2em] text-amber-600 dark:text-amber-400">Active Loans</h3>
@@ -241,31 +240,46 @@ const Dashboard = () => {
                     {loans.length === 0 ? (
                         <div className="text-center py-6">
                             <p className="text-amber-400 text-sm italic font-medium mb-4">No active loans</p>
-                            <Link to="/loans" className="inline-block px-6 py-2 rounded-xl bg-amber-100/50 text-amber-700 font-bold text-xs">Add Loan &rarr;</Link>
+                            <Link to="/loans" className="inline-block px-6 py-2 rounded-xl bg-amber-100/50 text-amber-900 dark:text-amber-300 font-bold text-xs hover:bg-amber-100 transition-colors">Add Loan &rarr;</Link>
                         </div>
                     ) : (
                         <div className="space-y-4">
-                            {loans.map(loan => (
-                                <Link key={loan.loan_id} to="/loans" className="block p-4 rounded-xl bg-white dark:bg-gray-800 border border-amber-100 dark:border-amber-900/30 hover:shadow-lg hover:shadow-amber-500/10 transition-all group">
-                                    <div className="flex justify-between items-start mb-2">
-                                        <div>
-                                            <h4 className="text-sm font-black text-gray-900 dark:text-white group-hover:text-amber-600 transition-colors">{loan.purpose}</h4>
-                                            <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">{loan.lender_name}</p>
+                            {loans.map(loan => {
+                                const principal = parseFloat(loan.principal_amount);
+                                const paid = parseFloat(loan.paid_amount || '0');
+                                const remaining = Math.max(0, principal - paid);
+                                const progress = Math.min(100, (paid / principal) * 100);
+
+                                return (
+                                    <Link key={loan.loan_id} to="/loans" className="block p-4 rounded-xl bg-white dark:bg-gray-800 border border-amber-100 dark:border-amber-900/30 hover:shadow-lg hover:shadow-amber-500/10 transition-all group">
+                                        <div className="flex justify-between items-start mb-2">
+                                            <div>
+                                                <h4 className="text-sm font-black text-gray-900 dark:text-white group-hover:text-amber-600 transition-colors">{loan.purpose}</h4>
+                                                <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">{loan.lender_name}</p>
+                                            </div>
+                                            <div className="text-right">
+                                                <p className="text-xs font-black text-gray-900 dark:text-white">
+                                                    Due Tk. {remaining.toLocaleString()}
+                                                </p>
+                                                <p className="text-[10px] font-bold text-gray-400">
+                                                    of Tk. {principal.toLocaleString()}
+                                                </p>
+                                            </div>
                                         </div>
-                                        <div className="text-right">
-                                            <p className="text-xs font-black text-gray-900 dark:text-white">Tk. {Number(loan.principal_amount).toLocaleString()}</p>
-                                            <p className="text-[10px] font-bold text-amber-500">{loan.interest_rate}% Interest</p>
+                                        <div className="space-y-1">
+                                            <div className="w-full bg-gray-100 dark:bg-gray-700 rounded-full h-1.5 overflow-hidden">
+                                                <div
+                                                    className="bg-amber-400 h-1.5 rounded-full transition-all duration-1000"
+                                                    style={{ width: `${progress}%` }}
+                                                ></div>
+                                            </div>
+                                            <div className="flex justify-end">
+                                                <span className="text-[10px] font-bold text-amber-500">{Math.round(progress)}% Repaid</span>
+                                            </div>
                                         </div>
-                                    </div>
-                                    <div className="w-full bg-gray-100 dark:bg-gray-700 rounded-full h-1.5 overflow-hidden">
-                                        <div className="bg-amber-400 h-1.5 rounded-full w-1/3"></div>
-                                    </div>
-                                    <div className="flex justify-between mt-2 text-[10px] font-bold text-gray-400">
-                                        <span>{loan.payment_frequency}</span>
-                                        <span>Due {new Date(loan.due_date).toLocaleDateString()}</span>
-                                    </div>
-                                </Link>
-                            ))}
+                                    </Link>
+                                );
+                            })}
                         </div>
                     )}
                 </div>
@@ -322,7 +336,7 @@ const Dashboard = () => {
                     )}
                 </div>
             </div>
-        </div >
+        </div>
     );
 };
 
