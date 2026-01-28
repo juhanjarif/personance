@@ -222,7 +222,7 @@ const Loans = () => {
                             </div>
 
                             <div>
-                                <label className="block text-xs font-black uppercase tracking-widest text-gray-400 mb-1">Principal Amount</label>
+                                <label className="block text-xs font-black uppercase tracking-widest text-gray-400 mb-1">Principal Amount (Tk.)</label>
                                 <div className="relative">
                                     <input
                                         type="number"

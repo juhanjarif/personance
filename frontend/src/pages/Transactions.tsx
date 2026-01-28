@@ -10,6 +10,7 @@ interface Account {
 interface Category {
   category_id: number;
   category_name: string;
+  is_income_category: boolean;
 }
 
 interface Transaction {
@@ -245,20 +246,7 @@ const Transactions: FC = () => {
                 </select>
             </div>
 
-            <div className="space-y-1">
-                <label className="text-xs font-bold text-gray-400 uppercase tracking-wider">Category</label>
-                <select 
-                  className="w-full px-4 py-2 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-white outline-none focus:ring-2 focus:ring-blue-500"
-                  value={formData.categoryId} 
-                  onChange={(e) => setFormData({...formData, categoryId: e.target.value})} 
-                  required
-                >
-                    <option value="">Select Category</option>
-                    {categories.map(c => <option key={c.category_id} value={c.category_id}>{c.category_name}</option>)}
-                </select>
-            </div>
-
-            {formData.type === 'transfer' && (
+            {formData.type === 'transfer' ? (
                 <div className="space-y-1">
                     <label className="text-xs font-bold text-gray-400 uppercase tracking-wider">To Account</label>
                     <select 
@@ -271,6 +259,8 @@ const Transactions: FC = () => {
                         {accounts.filter(a => String(a.account_id) !== formData.accountId).map(a => <option key={a.account_id} value={a.account_id}>{a.account_name}</option>)}
                     </select>
                 </div>
+            ) : (
+                <div className="hidden md:block"></div>
             )}
 
             <div className="space-y-1">
@@ -282,6 +272,26 @@ const Transactions: FC = () => {
                   onChange={(e) => setFormData({...formData, amount: e.target.value})} 
                   required 
                 />
+            </div>
+
+            <div className="space-y-1">
+                <label className="text-xs font-bold text-gray-400 uppercase tracking-wider">Category</label>
+                <select 
+                  className="w-full px-4 py-2 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-white outline-none focus:ring-2 focus:ring-blue-500"
+                  value={formData.categoryId} 
+                  onChange={(e) => setFormData({...formData, categoryId: e.target.value})} 
+                  required
+                >
+                    <option value="">Select Category</option>
+                    {categories
+                      .filter(c => {
+                        if (formData.type === 'income') return c.is_income_category;
+                        if (formData.type === 'expense') return !c.is_income_category && c.category_name !== 'Transfer';
+                        if (formData.type === 'transfer') return c.category_name === 'Transfer';
+                        return true;
+                      })
+                      .map(c => <option key={c.category_id} value={c.category_id}>{c.category_name}</option>)}
+                </select>
             </div>
 
              <div className="md:col-span-2 space-y-1">
