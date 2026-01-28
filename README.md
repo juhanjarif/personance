@@ -13,10 +13,7 @@ A web-based personal finance management system designed to help users track inco
   Track income, expenses, and transfers between accounts.
 
 - **Budget & Goal Tracking**  
-  Set and monitor budgets, rent, loan payments, and savings goals.
-
-- **Smart Notifications**  
-  Get alerts when budgets are exceeded or payments are missed.
+  Set and monitor budgets and savings goals.
 
 - **Financial Analytics**  
   Monthly summaries, spending categorization, and income vs. expense insights.
@@ -34,10 +31,9 @@ The system uses a relational database model with the following main tables along
 - `accounts` – Bank/wallet accounts linked to users
 - `transactions` – Records of all financial transactions
 - `categories` – Income/expense categories
-- `budgets` – Monthly/yearly budget limits per category
+- `budgets` – Budget limits per category
 - `loans` – Loan details and repayment tracking
 - `financial_goals` – Savings goals with deadlines
-- `notifications` – System alerts for users
 - `audit_log` – Log of important system events
 
 ---
@@ -48,7 +44,7 @@ The system uses a relational database model with the following main tables along
 |--------------|------------------|
 | **Frontend** | React, HTML, CSS |
 | **Backend**  | Node.js, Express |
-| **Database** | PostgreSQL       |
+| **Database** | PostgreSQL, Docker |
 | **Version Control** | Git, GitHub |
 
 ---
@@ -89,3 +85,10 @@ The system uses a relational database model with the following main tables along
 | Aakash Abdullah Siddhartha |
 
 ---
+
+## How to Run
+1. Run `docker compose up --build` to start the database.
+2. Run `npm install` in the backend directory to install dependencies.
+3. Run `npm install` in the frontend directory to install dependencies.
+4. Run `npm start` in the backend directory to start the server.
+5. Run `npm start` in the frontend directory to start the frontend.
