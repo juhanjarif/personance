@@ -394,7 +394,7 @@ const Loans = () => {
                     <div className="bg-white dark:bg-gray-800 rounded-3xl w-full max-w-md shadow-2xl border border-gray-100 dark:border-gray-700 overflow-hidden transform transition-all scale-100">
                         <div className="p-6 border-b border-gray-100 dark:border-gray-700 flex justify-between items-center bg-gray-50/50 dark:bg-gray-900/50">
                             <div>
-                                <h3 className="text-lg font-black text-gray-900 dark:text-white uppercase tracking-tighter">{selectedLoan.purpose} Loan</h3>
+                                <h3 className="text-lg font-black text-gray-900 dark:text-white uppercase tracking-tighter">{selectedLoan.purpose}</h3>
                             </div>
                             <button onClick={() => setSelectedLoan(null)} className="p-2 rounded-full hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors text-gray-500">
                                 &times;
@@ -421,7 +421,7 @@ const Loans = () => {
                                     <select
                                         value={selectedAccountId}
                                         onChange={e => setSelectedAccountId(parseInt(e.target.value))}
-                                        className="w-full px-4 py-2.5 rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900 text-sm focus:ring-2 focus:ring-amber-400 outline-none"
+                                        className="w-full px-4 py-3 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-white"
                                         required
                                     >
                                         <option value="">Select Account</option>
@@ -438,7 +438,7 @@ const Loans = () => {
                                         type="number"
                                         value={paymentAmount}
                                         onChange={e => setPaymentAmount(e.target.value)}
-                                        className="w-full px-4 py-2.5 rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900 text-sm focus:ring-2 focus:ring-amber-400 outline-none font-bold"
+                                        className="w-full px-4 py-3 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-white"
                                         placeholder="0.00"
                                         required
                                         min="1"
