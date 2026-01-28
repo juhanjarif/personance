@@ -3,14 +3,12 @@ import api from '../api';
 
 interface Loan {
     loan_id: number;
-    lender_name: string;
     purpose: string;
     principal_amount: string;
     interest_rate: string;
     interest_type: 'simple' | 'compound' | 'emi';
     payment_frequency: 'monthly' | 'quarterly' | 'half-yearly' | 'yearly';
     start_date: string;
-    due_date: string;
     grace_period_months: number;
     notes: string;
     status: 'active' | 'closed';
@@ -31,14 +29,12 @@ const Loans = () => {
     const [filterStatus, setFilterStatus] = useState<'all' | 'active' | 'closed'>('active');
 
     const [form, setForm] = useState({
-        lenderName: '',
         purpose: '',
         principalAmount: '',
         interestRate: '',
         interestType: 'simple',
         paymentFrequency: 'monthly',
         startDate: new Date().toISOString().split('T')[0],
-        dueDate: '',
         gracePeriodMonths: 0,
         notes: ''
     });
@@ -84,19 +80,7 @@ const Loans = () => {
         const P = parseFloat(form.principalAmount) || 0;
         const R = parseFloat(form.interestRate) || 0;
 
-        let T = 0;
-        if (form.startDate && form.dueDate) {
-            const start = new Date(form.startDate);
-            const end = new Date(form.dueDate);
-            const diffTime = Math.abs(end.getTime() - start.getTime());
-            const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-            T = diffDays / 365;
-
-            if (form.gracePeriodMonths > 0) {
-                const graceYears = form.gracePeriodMonths / 12;
-                T = Math.max(0, T - graceYears);
-            }
-        }
+        let T = 1;
 
         let totalAmount = 0;
         let interest = 0;
@@ -201,7 +185,7 @@ const Loans = () => {
     return (
         <div className="space-y-8 relative">
             <div className="flex justify-between items-center">
-                <h2 className="text-3xl font-black text-gray-900 dark:text-white">Loans Management</h2>
+                <h2 className="text-3xl font-black text-gray-900 dark:text-white">Loan Management</h2>
                 <div className="flex space-x-2">
                     {(['active', 'closed', 'all'] as const).map(status => (
                         <button
@@ -221,28 +205,17 @@ const Loans = () => {
             <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
                 <div className="lg:col-span-4">
                     <div className="bg-white dark:bg-gray-800 rounded-3xl p-8 border border-amber-100 dark:border-amber-900/20 shadow-xl relative overflow-hidden">
-                        <div className="absolute top-0 left-0 w-full h-2 bg-gradient-to-r from-amber-300 to-yellow-500"></div>
+                        <div className="absolute top-0 left-0 w-full h-2"></div>
                         <form onSubmit={handleSubmit} className="space-y-5">
-                            <div className="grid grid-cols-2 gap-4">
+                            <div className="grid grid-cols-1 gap-4">
                                 <div>
-                                    <label className="block text-xs font-black uppercase tracking-widest text-gray-400 mb-1">Sector (Purpose)</label>
+                                    <label className="block text-xs font-black uppercase tracking-widest text-gray-400 mb-1">Loan Purpose</label>
                                     <input
                                         type="text"
                                         value={form.purpose}
                                         onChange={e => setForm({ ...form, purpose: e.target.value })}
-                                        className="w-full px-4 py-2.5 rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900 text-sm focus:ring-2 focus:ring-amber-400 focus:border-transparent outline-none"
+                                        className="w-full px-4 py-3 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-white"
                                         placeholder="e.g. Home, Car"
-                                        required
-                                    />
-                                </div>
-                                <div>
-                                    <label className="block text-xs font-black uppercase tracking-widest text-gray-400 mb-1">Lender</label>
-                                    <input
-                                        type="text"
-                                        value={form.lenderName}
-                                        onChange={e => setForm({ ...form, lenderName: e.target.value })}
-                                        className="w-full px-4 py-2.5 rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900 text-sm focus:ring-2 focus:ring-amber-400 focus:border-transparent outline-none"
-                                        placeholder="Bank/Person"
                                         required
                                     />
                                 </div>
@@ -251,12 +224,11 @@ const Loans = () => {
                             <div>
                                 <label className="block text-xs font-black uppercase tracking-widest text-gray-400 mb-1">Principal Amount</label>
                                 <div className="relative">
-                                    <span className="absolute left-4 top-2.5 text-gray-400 font-bold">Tk.</span>
                                     <input
                                         type="number"
                                         value={form.principalAmount}
                                         onChange={e => setForm({ ...form, principalAmount: e.target.value })}
-                                        className="w-full pl-12 pr-4 py-2.5 rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900 text-sm font-bold focus:ring-2 focus:ring-amber-400 focus:border-transparent outline-none"
+                                        className="w-full px-4 py-3 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-white"
                                         placeholder="0.00"
                                         required
                                     />
@@ -265,13 +237,13 @@ const Loans = () => {
 
                             <div className="grid grid-cols-2 gap-4">
                                 <div>
-                                    <label className="block text-xs font-black uppercase tracking-widest text-gray-400 mb-1">Monthly Interest Rate (%)</label>
+                                    <label className="block text-xs font-black uppercase tracking-widest text-gray-400 mb-1">Interest Rate (%)</label>
                                     <input
                                         type="number"
                                         step="0.01"
                                         value={form.interestRate}
                                         onChange={e => setForm({ ...form, interestRate: e.target.value })}
-                                        className="w-full px-4 py-2.5 rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900 text-sm focus:ring-2 focus:ring-amber-400 focus:border-transparent outline-none"
+                                        className="w-full px-4 py-3 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-white"
                                         required
                                     />
                                 </div>
@@ -280,7 +252,7 @@ const Loans = () => {
                                     <select
                                         value={form.interestType}
                                         onChange={e => setForm({ ...form, interestType: e.target.value as any })}
-                                        className="w-full px-4 py-2.5 rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900 text-sm focus:ring-2 focus:ring-amber-400 focus:border-transparent outline-none"
+                                        className="w-full px-4 py-3 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-white"
                                     >
                                         <option value="simple">Simple</option>
                                         <option value="compound">Compound</option>
@@ -291,11 +263,11 @@ const Loans = () => {
 
                             <div className="grid grid-cols-2 gap-4">
                                 <div>
-                                    <label className="block text-xs font-black uppercase tracking-widest text-gray-400 mb-1">Payment Frequency</label>
+                                    <label className="block text-xs font-black uppercase tracking-widest text-gray-400 mb-1">Time Period</label>
                                     <select
                                         value={form.paymentFrequency}
                                         onChange={e => setForm({ ...form, paymentFrequency: e.target.value as any })}
-                                        className="w-full px-4 py-2.5 rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900 text-sm focus:ring-2 focus:ring-amber-400 focus:border-transparent outline-none"
+                                        className="w-full px-4 py-3 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-white"
                                     >
                                         <option value="monthly">Monthly</option>
                                         <option value="quarterly">Quarterly</option>
@@ -309,31 +281,8 @@ const Loans = () => {
                                         type="date"
                                         value={form.startDate}
                                         onChange={e => setForm({ ...form, startDate: e.target.value })}
-                                        className="w-full px-4 py-2.5 rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900 text-sm focus:ring-2 focus:ring-amber-400 focus:border-transparent outline-none"
+                                        className="w-full px-4 py-3 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-white"
                                         required
-                                    />
-                                </div>
-                            </div>
-
-                            <div className="grid grid-cols-2 gap-4">
-                                <div>
-                                    <label className="block text-xs font-black uppercase tracking-widest text-gray-400 mb-1">Due Date</label>
-                                    <input
-                                        type="date"
-                                        value={form.dueDate}
-                                        onChange={e => setForm({ ...form, dueDate: e.target.value })}
-                                        className="w-full px-4 py-2.5 rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900 text-sm focus:ring-2 focus:ring-amber-400 focus:border-transparent outline-none"
-                                        required
-                                    />
-                                </div>
-                                <div>
-                                    <label className="block text-xs font-black uppercase tracking-widest text-gray-400 mb-1">Grace Period (Months)</label>
-                                    <input
-                                        type="number"
-                                        min="0"
-                                        value={form.gracePeriodMonths}
-                                        onChange={e => setForm({ ...form, gracePeriodMonths: Math.max(0, parseInt(e.target.value) || 0) })}
-                                        className="w-full px-4 py-2.5 rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900 text-sm focus:ring-2 focus:ring-amber-400 focus:border-transparent outline-none"
                                     />
                                 </div>
                             </div>
@@ -343,7 +292,7 @@ const Loans = () => {
                                 <textarea
                                     value={form.notes}
                                     onChange={e => setForm({ ...form, notes: e.target.value })}
-                                    className="w-full px-4 py-2.5 rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900 text-sm focus:ring-2 focus:ring-amber-400 focus:border-transparent outline-none h-20 resize-none"
+                                    className="w-full px-4 py-3 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-white"
                                 ></textarea>
                             </div>
 
@@ -373,7 +322,7 @@ const Loans = () => {
                         </div>
                     ) : filteredLoans.length === 0 ? (
                         <div className="h-full flex flex-col items-center justify-center text-center p-10 border-2 border-dashed border-gray-200 dark:border-gray-700 rounded-3xl">
-                            <p className="text-gray-400 font-medium italic">No loans found under this category.</p>
+                            <p className="text-gray-400 font-medium italic">No loans found.</p>
                         </div>
                     ) : (
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -406,8 +355,7 @@ const Loans = () => {
                                             <span className={`inline-block px-2 py-1 rounded-md text-[10px] font-black uppercase tracking-widest mb-2 ${loan.status === 'active' ? 'bg-emerald-200 text-emerald-800' : 'bg-red-200 text-red-800'}`}>
                                                 {loan.status}
                                             </span>
-                                            <h3 className="text-xl font-black text-gray-900 dark:text-white">{loan.purpose}</h3>
-                                            <p className="text-xs text-gray-400 dark:text-gray-500 font-bold uppercase tracking-wider">{loan.lender_name}</p>
+                                            <h3 className="text-xl font-black text-gray-900 dark:text-white uppercase tracking-tight">{loan.purpose}</h3>
                                         </div>
                                     </div>
 
@@ -421,24 +369,16 @@ const Loans = () => {
                                                 of Tk. {Number(loan.principal_amount).toLocaleString()}
                                             </span>
                                         </div>
-                                        <div className="flex justify-between items-center py-3 border-t border-gray-200/50 dark:border-gray-700/50">
-                                            <div>
-                                                <p className="text-[10px] uppercase font-black text-gray-400">Interest</p>
-                                                <p className="text-sm font-bold text-gray-700 dark:text-gray-300">{loan.interest_rate}% <span className="text-[10px] text-gray-400">({loan.interest_type})</span></p>
+                                        <div className="mt-4">
+                                            <div className="flex justify-between items-center text-[10px] font-bold text-gray-400 mb-1 px-0.5">
+                                                <span className="uppercase tracking-widest">Progress</span>
+                                                <span>{Math.round(Math.min(100, Math.max(0, (parseFloat(loan.paid_amount || '0') / parseFloat(loan.principal_amount)) * 100)))}%</span>
                                             </div>
-                                            <div className="text-right">
-                                                <p className="text-[10px] uppercase font-black text-gray-400">Freq.</p>
-                                                <p className="text-sm font-bold text-gray-700 dark:text-gray-300 capitalize">{loan.payment_frequency}</p>
-                                            </div>
-                                        </div>
-                                        <div className="flex justify-between items-center">
-                                            <div>
-                                                <p className="text-[10px] uppercase font-black text-gray-400">Taken</p>
-                                                <p className="text-xs font-bold text-gray-600 dark:text-gray-400">{new Date(loan.start_date).toLocaleDateString()}</p>
-                                            </div>
-                                            <div className="text-right">
-                                                <p className="text-[10px] uppercase font-black text-gray-400">Due</p>
-                                                <p className="text-xs font-bold text-gray-600 dark:text-gray-400">{new Date(loan.due_date).toLocaleDateString()}</p>
+                                            <div className="h-2.5 w-full bg-gray-100 dark:bg-gray-800 rounded-full overflow-hidden shadow-inner">
+                                                <div
+                                                    className={`h-full shadow-lg transition-all duration-1000 ease-out ${loan.status === 'active' ? 'bg-emerald-500 shadow-emerald-500/50' : 'bg-gray-400'}`}
+                                                    style={{ width: `${Math.min(100, Math.max(0, (parseFloat(loan.paid_amount || '0') / parseFloat(loan.principal_amount)) * 100))}%` }}
+                                                ></div>
                                             </div>
                                         </div>
                                     </div>
@@ -454,8 +394,7 @@ const Loans = () => {
                     <div className="bg-white dark:bg-gray-800 rounded-3xl w-full max-w-md shadow-2xl border border-gray-100 dark:border-gray-700 overflow-hidden transform transition-all scale-100">
                         <div className="p-6 border-b border-gray-100 dark:border-gray-700 flex justify-between items-center bg-gray-50/50 dark:bg-gray-900/50">
                             <div>
-                                <h3 className="text-lg font-black text-gray-900 dark:text-white">{selectedLoan.purpose} Loan</h3>
-                                <p className="text-xs text-gray-400 font-bold uppercase tracking-wider">{selectedLoan.lender_name}</p>
+                                <h3 className="text-lg font-black text-gray-900 dark:text-white uppercase tracking-tighter">{selectedLoan.purpose} Loan</h3>
                             </div>
                             <button onClick={() => setSelectedLoan(null)} className="p-2 rounded-full hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors text-gray-500">
                                 &times;

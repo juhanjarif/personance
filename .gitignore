@@ -50,3 +50,7 @@ coverage/
 
 # Docker
 docker-compose.override.yml
+
+a.sh
+j.sh
+t.sh

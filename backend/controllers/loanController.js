@@ -3,19 +3,19 @@ const loanModel = require('../models/loanModel');
 const createLoan = async (req, res) => {
     try {
         const {
-            lenderName, purpose, principalAmount, interestRate,
+            purpose, principalAmount, interestRate,
             interestType, paymentFrequency, startDate,
-            dueDate, gracePeriodMonths, notes
+            gracePeriodMonths, notes
         } = req.body;
 
-        if (!lenderName || !purpose || !principalAmount || !interestRate || !startDate || !dueDate) {
+        if (!purpose || !principalAmount || !interestRate || !startDate) {
             return res.status(400).json({ message: 'Missing required fields' });
         }
 
         const newLoan = await loanModel.createLoan(req.user.id, {
-            lenderName, purpose, principalAmount, interestRate,
+            purpose, principalAmount, interestRate,
             interestType, paymentFrequency, startDate,
-            dueDate, gracePeriodMonths, notes
+            gracePeriodMonths, notes
         });
 
         res.status(201).json(newLoan);

@@ -254,15 +254,11 @@ const Dashboard = () => {
                                     <Link key={loan.loan_id} to="/loans" className="block p-4 rounded-xl bg-white dark:bg-gray-800 border border-amber-100 dark:border-amber-900/30 hover:shadow-lg hover:shadow-amber-500/10 transition-all group">
                                         <div className="flex justify-between items-start mb-2">
                                             <div>
-                                                <h4 className="text-sm font-black text-gray-900 dark:text-white group-hover:text-amber-600 transition-colors">{loan.purpose}</h4>
-                                                <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">{loan.lender_name}</p>
+                                                <h4 className="text-sm font-black text-gray-900 dark:text-white group-hover:text-amber-600 transition-colors uppercase tracking-tight">{loan.purpose}</h4>
                                             </div>
                                             <div className="text-right">
                                                 <p className="text-xs font-black text-gray-900 dark:text-white">
                                                     Due Tk. {remaining.toLocaleString()}
-                                                </p>
-                                                <p className="text-[10px] font-bold text-gray-400">
-                                                    of Tk. {principal.toLocaleString()}
                                                 </p>
                                             </div>
                                         </div>
