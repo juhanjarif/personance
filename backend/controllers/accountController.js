@@ -45,8 +45,25 @@ const updateAccount = async (req, res) => {
     }
 };
 
+const deleteAccount = async (req, res) => {
+    const { id } = req.params;
+    const userId = req.user.id;
+
+    try {
+        const deletedAccount = await accountModel.deleteAccount(id, userId);
+        if (!deletedAccount) {
+            return res.status(404).json({ message: 'Account not found or unauthorized' });
+        }
+        res.json({ message: 'Account deleted successfully' });
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ message: 'Server error' });
+    }
+};
+
 module.exports = {
   createAccount,
   getAccounts,
   updateAccount,
+  deleteAccount,
 };

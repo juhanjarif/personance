@@ -68,6 +68,16 @@ const Accounts = () => {
       }
   };
 
+  const handleDelete = async (accountId: number) => {
+      if (!window.confirm('Are you sure you want to delete this account? This will also delete all associated transactions.')) return;
+      try {
+          await api.delete(`/accounts/${accountId}`);
+          fetchAccounts();
+      } catch (err) {
+          console.error(err);
+      }
+  };
+
   return (
     <div className="space-y-6">
       <div className="flex justify-between items-center">
@@ -159,6 +169,13 @@ const Accounts = () => {
                                     title="Edit Name"
                                   >
                                     Edit
+                                  </button>
+                                  <button 
+                                    onClick={() => handleDelete(acc.account_id)} 
+                                    className="px-2 py-1 text-[10px] font-bold text-red-500 hover:bg-red-50 dark:hover:bg-red-900/30 rounded transition-colors cursor-pointer"
+                                    title="Delete Account"
+                                  >
+                                    Delete
                                   </button>
                               </div>
                           </>

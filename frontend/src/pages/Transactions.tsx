@@ -49,6 +49,7 @@ const Transactions: FC = () => {
     categoryId: '',
     amount: '',
     type: 'expense',
+    typeId: 2,
     description: '',
     toAccountId: ''
   });
@@ -64,8 +65,9 @@ const Transactions: FC = () => {
     const params = new URLSearchParams(location.search);
     const newType = params.get('new');
     if (newType && ['income', 'expense', 'transfer'].includes(newType)) {
+        const typeMap: Record<string, number> = { 'income': 1, 'expense': 2, 'transfer': 3 };
         setShowForm(true);
-        setFormData(prev => ({ ...prev, type: newType as any }));
+        setFormData(prev => ({ ...prev, type: newType, typeId: typeMap[newType] }));
         navigate('/transactions', { replace: true });
     }
   }, [location.search]);
@@ -147,6 +149,7 @@ const Transactions: FC = () => {
         categoryId: '',
         amount: '',
         type: 'expense',
+        typeId: 2,
         description: '',
         toAccountId: ''
       });
@@ -175,7 +178,7 @@ const Transactions: FC = () => {
             return sum;
         }, 0);
 
-        if (goalProgressBalance >= parseFloat(goal.target_amount)) {
+        if (goalProgressBalance >= parseFloat(goal.target_amount) - 0.01) {
           // Immediately delete so it doesn't trigger again on next poll/action
           await api.delete(`/finance/goals/${goal.financial_goal_id}`);
           
@@ -208,22 +211,22 @@ const Transactions: FC = () => {
             <div className="md:col-span-2 flex p-1 bg-gray-100 dark:bg-gray-700 rounded-lg">
                 <button 
                   type="button"
-                  onClick={() => setFormData({...formData, type: 'expense'})}
-                  className={`flex-1 py-2 text-sm font-bold rounded-md transition-all ${formData.type === 'expense' ? 'bg-white dark:bg-gray-600 text-red-500 shadow-sm' : 'text-gray-500 dark:text-gray-400'}`}
+                  onClick={() => setFormData({...formData, type: 'expense', typeId: 2})}
+                  className={`flex-1 py-2 text-sm font-bold rounded-md transition-all ${formData.typeId === 2 ? 'bg-white dark:bg-gray-600 text-red-500 shadow-sm' : 'text-gray-500 dark:text-gray-400'}`}
                 >
                   Expense
                 </button>
                 <button 
                   type="button"
-                  onClick={() => setFormData({...formData, type: 'income'})}
-                  className={`flex-1 py-2 text-sm font-bold rounded-md transition-all ${formData.type === 'income' ? 'bg-white dark:bg-gray-600 text-emerald-500 shadow-sm' : 'text-gray-500 dark:text-gray-400'}`}
+                  onClick={() => setFormData({...formData, type: 'income', typeId: 1})}
+                  className={`flex-1 py-2 text-sm font-bold rounded-md transition-all ${formData.typeId === 1 ? 'bg-white dark:bg-gray-600 text-emerald-500 shadow-sm' : 'text-gray-500 dark:text-gray-400'}`}
                 >
                   Income
                 </button>
                 <button 
                   type="button"
-                  onClick={() => setFormData({...formData, type: 'transfer'})}
-                  className={`flex-1 py-2 text-sm font-bold rounded-md transition-all ${formData.type === 'transfer' ? 'bg-white dark:bg-gray-600 text-blue-500 shadow-sm' : 'text-gray-500 dark:text-gray-400'}`}
+                  onClick={() => setFormData({...formData, type: 'transfer', typeId: 3})}
+                  className={`flex-1 py-2 text-sm font-bold rounded-md transition-all ${formData.typeId === 3 ? 'bg-white dark:bg-gray-600 text-blue-500 shadow-sm' : 'text-gray-500 dark:text-gray-400'}`}
                 >
                   Transfer
                 </button>

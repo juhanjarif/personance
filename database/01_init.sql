@@ -1,3 +1,16 @@
+DROP TABLE IF EXISTS loans CASCADE;
+DROP TABLE IF EXISTS audit_logs CASCADE;
+DROP TABLE IF EXISTS notifications CASCADE;
+DROP TABLE IF EXISTS financial_goals CASCADE;
+DROP TABLE IF EXISTS budgets CASCADE;
+DROP TABLE IF EXISTS transactions CASCADE;
+DROP TABLE IF EXISTS categories CASCADE;
+DROP TABLE IF EXISTS accounts CASCADE;
+DROP TABLE IF EXISTS transaction_types CASCADE;
+DROP TABLE IF EXISTS account_types CASCADE;
+DROP TABLE IF EXISTS users CASCADE;
+DROP TABLE IF EXISTS roles CASCADE;
+
 CREATE TABLE IF NOT EXISTS roles (
     role_id SERIAL PRIMARY KEY,
     role_name VARCHAR(50) UNIQUE NOT NULL
@@ -38,6 +51,28 @@ CREATE TABLE IF NOT EXISTS categories (
     is_income_category BOOLEAN DEFAULT FALSE
 );
 
+-- Seed Default Global Categories
+INSERT INTO categories (category_name, is_income_category, user_id) VALUES 
+('Salary', TRUE, NULL),
+('Freelance', TRUE, NULL),
+('Investment', TRUE, NULL),
+('Food & Dining', FALSE, NULL),
+('Shopping', FALSE, NULL),
+('Transportation', FALSE, NULL),
+('Rent & Utilities', FALSE, NULL),
+('Entertainment', FALSE, NULL),
+('Healthcare', FALSE, NULL),
+('Education', FALSE, NULL),
+('Transfer', FALSE, NULL)
+ON CONFLICT DO NOTHING;
+
+CREATE TABLE IF NOT EXISTS transaction_types (
+    transaction_type_id SERIAL PRIMARY KEY,
+    type_name VARCHAR(50) UNIQUE NOT NULL
+);
+
+INSERT INTO transaction_types (type_name) VALUES ('income'), ('expense'), ('transfer') ON CONFLICT DO NOTHING;
+
 CREATE TABLE IF NOT EXISTS transactions (
     transaction_id SERIAL PRIMARY KEY,
     user_id INT REFERENCES users(user_id) ON DELETE CASCADE,
@@ -45,7 +80,7 @@ CREATE TABLE IF NOT EXISTS transactions (
     category_id INT REFERENCES categories(category_id),
     amount DECIMAL(15, 2) NOT NULL,
     transaction_date DATE DEFAULT CURRENT_DATE,
-    transaction_type VARCHAR(20) CHECK (transaction_type IN ('income', 'expense', 'transfer')),
+    transaction_type_id INT REFERENCES transaction_types(transaction_type_id),
     description TEXT,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
@@ -90,14 +125,12 @@ CREATE TABLE IF NOT EXISTS audit_logs (
 CREATE TABLE IF NOT EXISTS loans (
     loan_id SERIAL PRIMARY KEY,
     user_id INT REFERENCES users(user_id) ON DELETE CASCADE,
-    lender_name VARCHAR(255) NOT NULL,
     purpose VARCHAR(255) NOT NULL,
     principal_amount DECIMAL(12, 2) NOT NULL,
     interest_rate DECIMAL(5, 2) NOT NULL,
     interest_type VARCHAR(50) NOT NULL,
     payment_frequency VARCHAR(50) NOT NULL,
     start_date DATE NOT NULL,
-    due_date DATE NOT NULL,
     grace_period_months INTEGER DEFAULT 0,
     notes TEXT,
     status VARCHAR(20) DEFAULT 'active',
