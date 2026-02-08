@@ -195,3 +195,43 @@ BEGIN
     COMMIT;
 END;
 $$;
+
+-- Procedure: add_goal_money
+CREATE OR REPLACE PROCEDURE add_goal_money(
+    p_goal_id INT,
+    p_account_id INT,
+    p_amount DECIMAL,
+    p_user_id INT
+)
+LANGUAGE plpgsql
+AS $$
+DECLARE
+    v_goal_name VARCHAR;
+    v_account_name VARCHAR;
+    expense_id INT;
+BEGIN
+    SELECT goal_name INTO v_goal_name FROM financial_goals WHERE financial_goal_id = p_goal_id;
+    
+    SELECT account_name INTO v_account_name FROM accounts WHERE account_id = p_account_id;
+
+    SELECT transaction_type_id INTO expense_id FROM transaction_types WHERE type_name = 'expense';
+    
+    -- Get expense type ID
+    SELECT transaction_type_id INTO expense_id FROM transaction_types WHERE type_name = 'expense';
+
+    -- Create Transaction
+    INSERT INTO transactions (user_id, account_id, category_id, amount, transaction_type_id, description)
+    VALUES (p_user_id, p_account_id, NULL, p_amount, expense_id, 'Goal Contribution: ' || v_goal_name);
+
+    -- Update Goal Current Amount
+    UPDATE financial_goals 
+    SET current_amount = COALESCE(current_amount, 0) + p_amount 
+    WHERE financial_goal_id = p_goal_id;
+
+    -- Create Notification
+    INSERT INTO notifications (user_id, title, message, is_read)
+    VALUES (p_user_id, 'Goal Contribution', 'You added Tk. ' || p_amount || ' to goal: ' || v_goal_name, FALSE);
+
+    COMMIT;
+END;
+$$;

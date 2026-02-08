@@ -30,32 +30,32 @@ const getBudgets = async (userId) => {
 };
 
 const createGoal = async (userId, goalName, targetAmount, deadline) => {
-    // Query: Create Goal
-    const query = 'INSERT INTO financial_goals (user_id, goal_name, target_amount, deadline) VALUES ($1, $2, $3, $4) RETURNING *';
-    const values = [userId, goalName, targetAmount, deadline];
-    const result = await db.query(query, values);
-    return result.rows[0];
+  // Query: Create Goal
+  const query = 'INSERT INTO financial_goals (user_id, goal_name, target_amount, deadline) VALUES ($1, $2, $3, $4) RETURNING *';
+  const values = [userId, goalName, targetAmount, deadline];
+  const result = await db.query(query, values);
+  return result.rows[0];
 };
 
 const getGoals = async (userId) => {
-    // Query: Get Goals
-    const query = 'SELECT * FROM financial_goals WHERE user_id = $1';
-    const result = await db.query(query, [userId]);
-    return result.rows;
+  // Query: Get Goals
+  const query = 'SELECT * FROM financial_goals WHERE user_id = $1';
+  const result = await db.query(query, [userId]);
+  return result.rows;
 };
 
 const deleteGoal = async (goalId, userId) => {
-    // Query: Delete Goal
-    const query = 'DELETE FROM financial_goals WHERE financial_goal_id = $1 AND user_id = $2 RETURNING *';
-    const result = await db.query(query, [goalId, userId]);
-    return result.rows[0];
+  // Query: Delete Goal
+  const query = 'DELETE FROM financial_goals WHERE financial_goal_id = $1 AND user_id = $2 RETURNING *';
+  const result = await db.query(query, [goalId, userId]);
+  return result.rows[0];
 };
 
 const deleteBudget = async (budgetId, userId) => {
-    // Query: Delete Budget
-    const query = 'DELETE FROM budgets WHERE budget_id = $1 AND user_id = $2 RETURNING *';
-    const result = await db.query(query, [budgetId, userId]);
-    return result.rows[0];
+  // Query: Delete Budget
+  const query = 'DELETE FROM budgets WHERE budget_id = $1 AND user_id = $2 RETURNING *';
+  const result = await db.query(query, [budgetId, userId]);
+  return result.rows[0];
 };
 
 const getCategories = async (userId) => {
@@ -65,6 +65,13 @@ const getCategories = async (userId) => {
   return result.rows;
 };
 
+const addGoalMoney = async (userId, goalId, accountId, amount) => {
+  // Query: Add Money to Goal (Call Procedure)
+  const query = 'CALL add_goal_money($1, $2, $3, $4)';
+  await db.query(query, [goalId, accountId, amount, userId]);
+  return { success: true };
+};
+
 module.exports = {
   createBudget,
   getBudgets,
@@ -72,5 +79,6 @@ module.exports = {
   createGoal,
   getGoals,
   deleteGoal,
-  getCategories
+  getCategories,
+  addGoalMoney
 };

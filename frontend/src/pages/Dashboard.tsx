@@ -29,6 +29,7 @@ interface Goal {
     financial_goal_id: number;
     goal_name: string;
     target_amount: string;
+    current_amount: string;
     created_at: string;
 }
 
@@ -53,17 +54,7 @@ const Dashboard = () => {
     const [loans, setLoans] = useState<Loan[]>([]);
     const [loading, setLoading] = useState(true);
     const [currentGoalIndex, setCurrentGoalIndex] = useState(0);
-    const [allTransactions, setAllTransactions] = useState<Transaction[]>([]);
 
-    useEffect(() => {
-        const fetchAllTxs = async () => {
-            try {
-                const res = await api.get<Transaction[]>('/transactions');
-                setAllTransactions(res.data);
-            } catch (err) { console.error(err); }
-        };
-        if (goals.length > 0) fetchAllTxs();
-    }, [goals.length]);
 
     useEffect(() => {
         const fetchData = async () => {
@@ -122,16 +113,7 @@ const Dashboard = () => {
 
     const currentGoal = goals[currentGoalIndex];
 
-    let goalProgressBalance = 0;
-    if (currentGoal) {
-        const goalCreated = new Date(currentGoal.created_at);
-        const goalTxs = allTransactions.filter(t => new Date(t.created_at) >= goalCreated);
-        goalProgressBalance = goalTxs.reduce((sum, t) => {
-            if (t.transaction_type === 'income') return sum + parseFloat(t.amount);
-            if (t.transaction_type === 'expense') return sum - parseFloat(t.amount);
-            return sum;
-        }, 0);
-    }
+    const goalProgressBalance = currentGoal ? parseFloat(currentGoal.current_amount || '0') : 0;
 
     return (
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
@@ -244,13 +226,16 @@ const Dashboard = () => {
                         </div>
 
                         {goals.length > 0 ? (
-                            <div key={currentGoal?.financial_goal_id} className="fade-in">
+                            <Link key={currentGoal?.financial_goal_id} to="/planning?tab=goal" className="fade-in block group">
                                 <div className="space-y-4">
                                     <p className="text-emerald-600 dark:text-emerald-400 text-xs font-black uppercase tracking-widest">{currentGoal.goal_name}</p>
                                     <h3 className="text-4xl font-black text-gray-900 dark:text-white flex items-baseline">
                                         <span className="text-sm mr-1 opacity-50 font-medium font-sans italic">Target Tk.</span>
                                         {Number(currentGoal.target_amount).toLocaleString()}
                                     </h3>
+                                    <p className="text-xs font-bold text-emerald-600 dark:text-emerald-400">
+                                        Saved Tk. {Number(currentGoal.current_amount || 0).toLocaleString()} of Tk. {Number(currentGoal.target_amount).toLocaleString()}
+                                    </p>
 
                                     <div className="mt-8">
                                         <div className="flex justify-between items-center text-[10px] font-bold text-emerald-600/70 mb-1.5 px-0.5">
@@ -265,7 +250,7 @@ const Dashboard = () => {
                                         </div>
                                     </div>
                                 </div>
-                            </div>
+                            </Link>
                         ) : (
                             <div className="text-center py-10">
                                 <p className="text-emerald-400 text-sm italic font-medium mb-4">No goals active</p>
