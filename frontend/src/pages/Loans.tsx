@@ -8,12 +8,15 @@ interface Loan {
     interest_rate: string;
     interest_type: 'simple' | 'compound' | 'emi';
     payment_frequency: 'monthly' | 'quarterly' | 'half-yearly' | 'yearly';
+    return_frequency: 'MONTHLY' | 'QUARTERLY' | 'HALF-YEARLY' | 'YEARLY';
     start_date: string;
     grace_period_months: number;
     notes: string;
     status: 'active' | 'closed';
     created_at: string;
     paid_amount: string;
+    due_date: string;
+    total_repayment_amount: string;
 }
 
 interface Account {
@@ -32,17 +35,15 @@ const Loans = () => {
         purpose: '',
         principalAmount: '',
         interestRate: '',
-        interestType: 'simple',
-        paymentFrequency: 'monthly',
-        startDate: new Date().toISOString().split('T')[0],
+        interestType: '' as any,
+        returnFrequency: '' as any,
         gracePeriodMonths: 0,
-        notes: ''
+        dueDate: ''
     });
 
     const [calculations, setCalculations] = useState({
         totalRepayment: 0,
-        interestAmount: 0,
-        nextPaymentInterest: 0
+        nextInstallment: 0
     });
 
     const [selectedLoan, setSelectedLoan] = useState<Loan | null>(null);
@@ -79,58 +80,75 @@ const Loans = () => {
     const calculateLoan = () => {
         const P = parseFloat(form.principalAmount) || 0;
         const R = parseFloat(form.interestRate) || 0;
+        const dueDate = new Date(form.dueDate);
+        const startDate = new Date();
 
-        let T = 1;
+        if (isNaN(dueDate.getTime()) || P <= 0 || !form.interestType || !form.returnFrequency) {
+            setCalculations({ totalRepayment: 0, nextInstallment: 0 });
+            return;
+        }
+
+        const diffTime = Math.abs(dueDate.getTime() - startDate.getTime());
+        const diffMonths = Math.max(1, Math.ceil(diffTime / (1000 * 60 * 60 * 24 * 30.44)));
+        const T = diffMonths / 12;
 
         let totalAmount = 0;
-        let interest = 0;
 
         if (form.interestType === 'simple') {
-            interest = P * (R / 100) * T;
-            totalAmount = P + interest;
+            totalAmount = P * (1 + (R / 100) * T);
         } else if (form.interestType === 'compound') {
-            const n = form.paymentFrequency === 'monthly' ? 12 : (form.paymentFrequency === 'quarterly' ? 4 : (form.paymentFrequency === 'half-yearly' ? 2 : 1));
+            const n = 12; // Compounded monthly
             totalAmount = P * Math.pow((1 + (R / 100) / n), n * T);
-            interest = totalAmount - P;
         } else if (form.interestType === 'emi') {
             const rPerMonth = (R / 100) / 12;
-            const nMonths = T * 12;
+            const nMonths = diffMonths;
             if (nMonths > 0 && rPerMonth > 0) {
                 const emi = (P * rPerMonth * Math.pow(1 + rPerMonth, nMonths)) / (Math.pow(1 + rPerMonth, nMonths) - 1);
                 totalAmount = emi * nMonths;
-                interest = totalAmount - P;
             } else {
                 totalAmount = P;
             }
         }
 
-        let nextPaymentInt = 0;
-        let freqDivisor = 12;
-        switch (form.paymentFrequency) {
-            case 'quarterly': freqDivisor = 4; break;
-            case 'half-yearly': freqDivisor = 2; break;
-            case 'yearly': freqDivisor = 1; break;
-            default: freqDivisor = 12;
+        const effectiveMonths = Math.max(1, diffMonths - form.gracePeriodMonths);
+        let frequencyFactor = 1;
+        switch (form.returnFrequency) {
+            case 'QUARTERLY': frequencyFactor = 3; break;
+            case 'HALF-YEARLY': frequencyFactor = 6; break;
+            case 'YEARLY': frequencyFactor = 12; break;
+            default: frequencyFactor = 1;
         }
 
-        nextPaymentInt = (totalAmount - P) / (T * freqDivisor || 1);
-        if (form.interestType === 'simple') nextPaymentInt = (P * (R / 100)) / freqDivisor;
-
+        const totalInstallments = Math.max(1, effectiveMonths / frequencyFactor);
+        const nextInstallment = totalAmount / totalInstallments;
 
         setCalculations({
             totalRepayment: isNaN(totalAmount) ? 0 : totalAmount,
-            interestAmount: isNaN(interest) ? 0 : interest,
-            nextPaymentInterest: isNaN(nextPaymentInt) ? 0 : nextPaymentInt
+            nextInstallment: isNaN(nextInstallment) ? 0 : nextInstallment
         });
     };
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         try {
-            await api.post('/loans', form);
+            const payload = {
+                ...form,
+                paymentFrequency: form.returnFrequency.toLowerCase(), // for backward compatibility
+                startDate: new Date().toISOString().split('T')[0],
+                totalRepaymentAmount: calculations.totalRepayment
+            };
+            await api.post('/loans', payload);
             fetchLoans();
             alert('Loan added successfully');
-            setForm({ ...form, principalAmount: '', purpose: '', notes: '' });
+            setForm({
+                purpose: '',
+                principalAmount: '',
+                interestRate: '',
+                interestType: '' as any,
+                returnFrequency: '' as any,
+                gracePeriodMonths: 0,
+                dueDate: ''
+            });
         } catch (err) {
             console.error(err);
             alert('Failed to add loan');
@@ -206,33 +224,34 @@ const Loans = () => {
                 <div className="lg:col-span-4">
                     <div className="bg-white dark:bg-gray-800 rounded-3xl p-8 border border-amber-100 dark:border-amber-900/20 shadow-xl relative overflow-hidden">
                         <div className="absolute top-0 left-0 w-full h-2"></div>
-                        <form onSubmit={handleSubmit} className="space-y-5">
-                            <div className="grid grid-cols-1 gap-4">
-                                <div>
-                                    <label className="block text-xs font-black uppercase tracking-widest text-gray-400 mb-1">Loan Purpose</label>
-                                    <input
-                                        type="text"
-                                        value={form.purpose}
-                                        onChange={e => setForm({ ...form, purpose: e.target.value })}
-                                        className="w-full px-4 py-3 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-white"
-                                        placeholder="e.g. Home, Car"
-                                        required
-                                    />
-                                </div>
+                        <form onSubmit={handleSubmit} className="space-y-4">
+                            <div>
+                                <label className="block text-xs font-black uppercase tracking-widest text-gray-400 mb-1">Loan Purpose</label>
+                                <input
+                                    type="text"
+                                    value={form.purpose}
+                                    onChange={e => setForm({ ...form, purpose: e.target.value })}
+                                    className="w-full px-4 py-3 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-white"
+                                    placeholder="e.g. Home, Car"
+                                    required
+                                />
                             </div>
 
                             <div>
                                 <label className="block text-xs font-black uppercase tracking-widest text-gray-400 mb-1">Principal Amount (Tk.)</label>
-                                <div className="relative">
-                                    <input
-                                        type="number"
-                                        value={form.principalAmount}
-                                        onChange={e => setForm({ ...form, principalAmount: e.target.value })}
-                                        className="w-full px-4 py-3 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-white"
-                                        placeholder="0.00"
-                                        required
-                                    />
-                                </div>
+                                <input
+                                    type="number"
+                                    value={form.principalAmount}
+                                    onChange={e => setForm({ ...form, principalAmount: e.target.value })}
+                                    className="w-full px-4 py-3 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-white"
+                                    placeholder="0.00"
+                                    required
+                                />
+                                {form.principalAmount && (
+                                    <p className="text-[14px] font-black uppercase tracking-widest text-emerald-600 dark:text-emerald-400 mt-1 text-right">
+                                        TK. {Number(form.principalAmount).toLocaleString()}
+                                    </p>
+                                )}
                             </div>
 
                             <div className="grid grid-cols-2 gap-4">
@@ -253,7 +272,9 @@ const Loans = () => {
                                         value={form.interestType}
                                         onChange={e => setForm({ ...form, interestType: e.target.value as any })}
                                         className="w-full px-4 py-3 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-white"
+                                        required
                                     >
+                                        <option value="" disabled hidden>Choose an option</option>
                                         <option value="simple">Simple</option>
                                         <option value="compound">Compound</option>
                                         <option value="emi">EMI</option>
@@ -263,37 +284,42 @@ const Loans = () => {
 
                             <div className="grid grid-cols-2 gap-4">
                                 <div>
-                                    <label className="block text-xs font-black uppercase tracking-widest text-gray-400 mb-1">Time Period</label>
+                                    <label className="block text-xs font-black uppercase tracking-widest text-gray-400 mb-1">Return Frequency</label>
                                     <select
-                                        value={form.paymentFrequency}
-                                        onChange={e => setForm({ ...form, paymentFrequency: e.target.value as any })}
+                                        value={form.returnFrequency}
+                                        onChange={e => setForm({ ...form, returnFrequency: e.target.value as any })}
                                         className="w-full px-4 py-3 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-white"
+                                        required
                                     >
-                                        <option value="monthly">Monthly</option>
-                                        <option value="quarterly">Quarterly</option>
-                                        <option value="half-yearly">Half Yearly</option>
-                                        <option value="yearly">Yearly</option>
+                                        <option value="" disabled hidden>Choose an option</option>
+                                        <option value="MONTHLY">Monthly</option>
+                                        <option value="QUARTERLY">Quarterly</option>
+                                        <option value="HALF-YEARLY">Half Yearly</option>
+                                        <option value="YEARLY">Yearly</option>
                                     </select>
                                 </div>
                                 <div>
-                                    <label className="block text-xs font-black uppercase tracking-widest text-gray-400 mb-1">Start Date</label>
+                                    <label className="block text-xs font-black uppercase tracking-widest text-gray-400 mb-1">Grace Period (Months)</label>
                                     <input
-                                        type="date"
-                                        value={form.startDate}
-                                        onChange={e => setForm({ ...form, startDate: e.target.value })}
+                                        type="number"
+                                        min="0"
+                                        value={form.gracePeriodMonths}
+                                        onChange={e => setForm({ ...form, gracePeriodMonths: parseInt(e.target.value) || 0 })}
                                         className="w-full px-4 py-3 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-white"
-                                        required
                                     />
                                 </div>
                             </div>
 
                             <div>
-                                <label className="block text-xs font-black uppercase tracking-widest text-gray-400 mb-1">Notes (Optional)</label>
-                                <textarea
-                                    value={form.notes}
-                                    onChange={e => setForm({ ...form, notes: e.target.value })}
+                                <label className="block text-xs font-black uppercase tracking-widest text-gray-400 mb-1">Due Date</label>
+                                <input
+                                    type="date"
+                                    value={form.dueDate}
+                                    min={new Date().toISOString().split('T')[0]}
+                                    onChange={e => setForm({ ...form, dueDate: e.target.value })}
                                     className="w-full px-4 py-3 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-white"
-                                ></textarea>
+                                    required
+                                />
                             </div>
 
                             <div className="p-4 rounded-xl bg-amber-50 dark:bg-amber-900/10 border border-amber-100 dark:border-amber-900/30">
@@ -302,8 +328,8 @@ const Loans = () => {
                                     <span className="text-lg font-black text-amber-600 dark:text-amber-400">Tk. {calculations.totalRepayment.toLocaleString(undefined, { maximumFractionDigits: 0 })}</span>
                                 </div>
                                 <div className="flex justify-between items-center">
-                                    <span className="text-[10px] font-bold text-amber-700/60 dark:text-amber-300/60 uppercase">Next {form.paymentFrequency} Interest</span>
-                                    <span className="text-xs font-bold text-amber-600/80 dark:text-amber-400/80">Tk. {calculations.nextPaymentInterest.toLocaleString(undefined, { maximumFractionDigits: 0 })}</span>
+                                    <span className="text-[10px] font-bold text-amber-700/60 dark:text-amber-300/60 uppercase">Next Installment Amount</span>
+                                    <span className="text-xs font-bold text-amber-600/80 dark:text-amber-400/80">Tk. {calculations.nextInstallment.toLocaleString(undefined, { maximumFractionDigits: 0 })}</span>
                                 </div>
                             </div>
 
@@ -363,21 +389,88 @@ const Loans = () => {
                                         <div className="flex items-baseline flex-wrap">
                                             <span className="text-sm font-bold text-gray-400 mr-2">Due</span>
                                             <span className="text-2xl font-black text-gray-900 dark:text-white mr-2">
-                                                Tk. {Math.max(0, parseFloat(loan.principal_amount) - parseFloat(loan.paid_amount || '0')).toLocaleString()}
+                                                Tk. {Math.max(0, parseFloat(loan.total_repayment_amount || loan.principal_amount) - parseFloat(loan.paid_amount || '0')).toLocaleString()}
                                             </span>
                                             <span className="text-xs font-bold text-gray-400">
-                                                of Tk. {Number(loan.principal_amount).toLocaleString()}
+                                                of Tk. {Number(loan.total_repayment_amount || loan.principal_amount).toLocaleString()}
                                             </span>
                                         </div>
+
+                                        <div className="p-3 rounded-xl bg-white/50 dark:bg-gray-900/30 border border-gray-100/50 dark:border-gray-800/30">
+                                            <div className="flex justify-between items-center mb-1">
+                                                <span className="text-[10px] font-black uppercase text-gray-400">Next Installment</span>
+                                                <span className="text-sm font-black text-amber-600 dark:text-amber-400">
+                                                    Tk. {(() => {
+                                                        const paid = parseFloat(loan.paid_amount || '0');
+                                                        const remaining = Math.max(0, parseFloat(loan.total_repayment_amount || loan.principal_amount) - paid);
+                                                        if (remaining <= 0) return '0';
+
+                                                        const start = new Date(loan.created_at || loan.start_date);
+                                                        const due = new Date(loan.due_date || (new Date(start.getTime() + 30 * 24 * 60 * 60 * 1000)));
+                                                        const today = new Date();
+                                                        const monthsLeft = Math.max(1, Math.ceil((due.getTime() - today.getTime()) / (1000 * 60 * 60 * 24 * 30.44)));
+
+                                                        let freq = 1;
+                                                        const rf = (loan.return_frequency || 'MONTHLY').toUpperCase();
+                                                        if (rf === 'QUARTERLY') freq = 3;
+                                                        else if (rf === 'HALF-YEARLY') freq = 6;
+                                                        else if (rf === 'YEARLY') freq = 12;
+
+                                                        const remainingInstallments = Math.max(1, monthsLeft / freq);
+                                                        return Math.ceil(remaining / remainingInstallments).toLocaleString();
+                                                    })()}
+                                                </span>
+                                            </div>
+                                            <div className="flex justify-between items-center text-[10px] font-bold text-gray-500">
+                                                <span className="uppercase">Due Date</span>
+                                                <span>
+                                                    {(() => {
+                                                        const start = new Date(loan.created_at || loan.start_date);
+                                                        const graceDays = (loan.grace_period_months || 0) * 30;
+                                                        let freqDays = 30;
+                                                        const rf = (loan.return_frequency || 'MONTHLY').toUpperCase();
+                                                        if (rf === 'QUARTERLY') freqDays = 90;
+                                                        else if (rf === 'HALF-YEARLY') freqDays = 180;
+                                                        else if (rf === 'YEARLY') freqDays = 365;
+
+                                                        const total = parseFloat(loan.total_repayment_amount || loan.principal_amount);
+                                                        const paid = parseFloat(loan.paid_amount || '0');
+
+                                                        const instSize = (() => {
+                                                            const s = new Date(loan.created_at || loan.start_date);
+                                                            const d = new Date(loan.due_date || (new Date(s.getTime() + 30 * 24 * 60 * 60 * 1000)));
+                                                            const tm = Math.max(1, Math.ceil((d.getTime() - s.getTime()) / (1000 * 60 * 60 * 24 * 30.44)));
+                                                            const em = Math.max(1, tm - (loan.grace_period_months || 0));
+                                                            let f = 1;
+                                                            if (rf === 'QUARTERLY') f = 3;
+                                                            else if (rf === 'HALF-YEARLY') f = 6;
+                                                            else if (rf === 'YEARLY') f = 12;
+                                                            const ti = Math.max(1, em / f);
+                                                            return total / ti;
+                                                        })();
+
+                                                        const installmentsPaid = Math.floor(paid / (instSize || 1));
+                                                        const nextInstIndex = installmentsPaid + 1;
+
+                                                        const nextDate = new Date(start);
+                                                        nextDate.setDate(nextDate.getDate() + graceDays + (nextInstIndex * freqDays));
+
+                                                        const finalDue = new Date(loan.due_date || nextDate);
+                                                        return (nextDate > finalDue ? finalDue : nextDate).toLocaleDateString();
+                                                    })()}
+                                                </span>
+                                            </div>
+                                        </div>
+
                                         <div className="mt-4">
                                             <div className="flex justify-between items-center text-[10px] font-bold text-gray-400 mb-1 px-0.5">
                                                 <span className="uppercase tracking-widest">Progress</span>
-                                                <span>{Math.round(Math.min(100, Math.max(0, (parseFloat(loan.paid_amount || '0') / parseFloat(loan.principal_amount)) * 100)))}%</span>
+                                                <span>{Math.round(Math.min(100, Math.max(0, (parseFloat(loan.paid_amount || '0') / parseFloat(loan.total_repayment_amount || loan.principal_amount)) * 100)))}%</span>
                                             </div>
                                             <div className="h-2.5 w-full bg-gray-100 dark:bg-gray-800 rounded-full overflow-hidden shadow-inner">
                                                 <div
                                                     className={`h-full shadow-lg transition-all duration-1000 ease-out ${loan.status === 'active' ? 'bg-emerald-500 shadow-emerald-500/50' : 'bg-gray-400'}`}
-                                                    style={{ width: `${Math.min(100, Math.max(0, (parseFloat(loan.paid_amount || '0') / parseFloat(loan.principal_amount)) * 100))}%` }}
+                                                    style={{ width: `${Math.min(100, Math.max(0, (parseFloat(loan.paid_amount || '0') / parseFloat(loan.total_repayment_amount || loan.principal_amount)) * 100))}%` }}
                                                 ></div>
                                             </div>
                                         </div>
@@ -406,12 +499,12 @@ const Loans = () => {
                                 <div>
                                     <p className="text-[10px] font-black uppercase tracking-widest text-amber-800 dark:text-amber-200">Current Due</p>
                                     <p className="text-2xl font-black text-amber-600 dark:text-amber-400">
-                                        Tk. {Math.max(0, parseFloat(selectedLoan.principal_amount) - parseFloat(selectedLoan.paid_amount || '0')).toLocaleString()}
+                                        Tk. {Math.max(0, parseFloat(selectedLoan.total_repayment_amount || selectedLoan.principal_amount) - parseFloat(selectedLoan.paid_amount || '0')).toLocaleString()}
                                     </p>
                                 </div>
                                 <div className="text-right">
                                     <p className="text-[10px] font-black uppercase tracking-widest text-gray-400">Total</p>
-                                    <p className="text-sm font-bold text-gray-600 dark:text-gray-400">Tk. {Number(selectedLoan.principal_amount).toLocaleString()}</p>
+                                    <p className="text-sm font-bold text-gray-600 dark:text-gray-400">Tk. {Number(selectedLoan.total_repayment_amount || selectedLoan.principal_amount).toLocaleString()}</p>
                                 </div>
                             </div>
 
@@ -442,7 +535,7 @@ const Loans = () => {
                                         placeholder="0.00"
                                         required
                                         min="1"
-                                        max={Math.max(0, parseFloat(selectedLoan.principal_amount) - parseFloat(selectedLoan.paid_amount || '0'))}
+                                        max={Math.max(0, parseFloat(selectedLoan.total_repayment_amount || selectedLoan.principal_amount) - parseFloat(selectedLoan.paid_amount || '0'))}
                                     />
                                     {paymentAmount && (
                                         <p className="text-xs font-bold text-amber-600 dark:text-amber-400 mt-1 text-right">

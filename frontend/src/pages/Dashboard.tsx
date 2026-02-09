@@ -36,14 +36,16 @@ interface Goal {
 
 interface Loan {
     loan_id: number;
-    lender_name: string;
     purpose: string;
     principal_amount: string;
-    interest_rate: string;
+    paid_amount?: string;
     status: 'active' | 'closed';
-    payment_frequency: 'monthly' | 'quarterly';
-    due_date: string;
-    paid_amount: string;
+    total_repayment_amount?: string;
+    return_frequency?: string;
+    grace_period_months?: number;
+    start_date?: string;
+    created_at?: string;
+    due_date?: string;
 }
 
 const Dashboard = () => {
@@ -312,27 +314,89 @@ const Dashboard = () => {
                                 <div className="space-y-4">
                                     <p className="text-amber-600 dark:text-amber-400 text-xs font-black uppercase tracking-widest">{currentLoan.purpose}</p>
 
-                                    <div className="bg-white dark:bg-amber-900/20 p-5 rounded-2xl border border-amber-100 dark:border-amber-800/30 shadow-sm">
-                                        <div className="mb-2">
-                                            <p className="text-xl font-black text-gray-900 dark:text-white mb-1 flex flex-wrap items-baseline gap-2">
-                                                <span className="text-xs font-bold text-gray-400 uppercase tracking-widest">Due</span>
-                                                <span>Tk. {Number(Math.max(0, parseFloat(currentLoan.principal_amount) - parseFloat(currentLoan.paid_amount || '0'))).toLocaleString()}</span>
-                                                <span className="text-xs font-bold text-amber-600 dark:text-amber-400">
-                                                    of Tk. {Number(currentLoan.principal_amount).toLocaleString()}
+                                    <div className="bg-white dark:bg-amber-900/20 p-5 rounded-2xl border border-amber-100 dark:border-amber-800/30 shadow-sm space-y-3">
+                                        <div className="flex items-baseline flex-wrap">
+                                            <span className="text-xs font-bold text-gray-400 uppercase tracking-widest mr-2">Due</span>
+                                            <span className="text-xl font-black text-gray-900 dark:text-white mr-2">
+                                                Tk. {Math.max(0, parseFloat(currentLoan.total_repayment_amount || currentLoan.principal_amount) - parseFloat(currentLoan.paid_amount || '0')).toLocaleString()}
+                                            </span>
+                                            <span className="text-[10px] font-bold text-gray-400">
+                                                of Tk. {Number(currentLoan.total_repayment_amount || currentLoan.principal_amount).toLocaleString()}
+                                            </span>
+                                        </div>
+
+                                        <div className="p-3 rounded-xl bg-amber-50/50 dark:bg-amber-900/30 border border-amber-100/30">
+                                            <div className="flex justify-between items-center mb-1">
+                                                <span className="text-[10px] font-black uppercase text-gray-400">Next Installment</span>
+                                                <span className="text-sm font-black text-amber-600 dark:text-amber-400">
+                                                    Tk. {(() => {
+                                                        const start = new Date(currentLoan.created_at || currentLoan.start_date || new Date());
+                                                        const due = new Date(currentLoan.due_date || (new Date(start.getTime() + 30 * 24 * 60 * 60 * 1000)));
+                                                        const today = new Date();
+                                                        const monthsLeft = Math.max(1, Math.ceil((due.getTime() - today.getTime()) / (1000 * 60 * 60 * 24 * 30.44)));
+
+                                                        const remaining = Math.max(0, parseFloat(currentLoan.total_repayment_amount || currentLoan.principal_amount) - parseFloat(currentLoan.paid_amount || '0'));
+
+                                                        let freq = 1;
+                                                        const rf = (currentLoan.return_frequency || 'MONTHLY').toUpperCase();
+                                                        if (rf === 'QUARTERLY') freq = 3;
+                                                        else if (rf === 'HALF-YEARLY') freq = 6;
+                                                        else if (rf === 'YEARLY') freq = 12;
+
+                                                        const remainingInstallments = Math.max(1, monthsLeft / freq);
+                                                        return Math.ceil(remaining / remainingInstallments).toLocaleString();
+                                                    })()}
                                                 </span>
-                                            </p>
+                                            </div>
+                                            <div className="flex justify-between items-center text-[10px] font-bold text-gray-500">
+                                                <span className="uppercase tracking-tight">Due Date</span>
+                                                <span>
+                                                    {(() => {
+                                                        const start = new Date(currentLoan.created_at || currentLoan.start_date || new Date());
+                                                        const graceDays = (currentLoan.grace_period_months || 0) * 30;
+                                                        let freqDays = 30;
+                                                        const rf = (currentLoan.return_frequency || 'MONTHLY').toUpperCase();
+                                                        if (rf === 'QUARTERLY') freqDays = 90;
+                                                        else if (rf === 'HALF-YEARLY') freqDays = 180;
+                                                        else if (rf === 'YEARLY') freqDays = 365;
+
+                                                        const total = parseFloat(currentLoan.total_repayment_amount || currentLoan.principal_amount);
+                                                        const paid = parseFloat(currentLoan.paid_amount || '0');
+
+                                                        const instSize = (() => {
+                                                            const s = new Date(currentLoan.created_at || currentLoan.start_date || new Date());
+                                                            const d = new Date(currentLoan.due_date || (new Date(s.getTime() + 30 * 24 * 60 * 60 * 1000)));
+                                                            const tm = Math.max(1, Math.ceil((d.getTime() - s.getTime()) / (1000 * 60 * 60 * 24 * 30.44)));
+                                                            const em = Math.max(1, tm - (currentLoan.grace_period_months || 0));
+                                                            let f = 1;
+                                                            if (rf === 'QUARTERLY') f = 3;
+                                                            else if (rf === 'HALF-YEARLY') f = 6;
+                                                            else if (rf === 'YEARLY') f = 12;
+                                                            const ti = Math.max(1, em / f);
+                                                            return total / ti;
+                                                        })();
+
+                                                        const installmentsPaid = Math.floor(paid / (instSize || 1));
+                                                        const nextDate = new Date(start);
+                                                        nextDate.setDate(nextDate.getDate() + graceDays + ((installmentsPaid + 1) * freqDays));
+
+                                                        const finalDue = new Date(currentLoan.due_date || nextDate);
+                                                        return (nextDate > finalDue ? finalDue : nextDate).toLocaleDateString();
+                                                    })()}
+                                                </span>
+                                            </div>
                                         </div>
                                     </div>
 
                                     <div className="mt-4">
                                         <div className="flex justify-between items-center text-[10px] font-bold text-amber-600/70 mb-1.5 px-0.5">
-                                            <span className="uppercase tracking-widest">Repayment</span>
-                                            <span>{Math.round(Math.min(100, (parseFloat(currentLoan.paid_amount || '0') / parseFloat(currentLoan.principal_amount)) * 100))}%</span>
+                                            <span className="uppercase tracking-widest">Progress</span>
+                                            <span>{Math.round(Math.min(100, Math.max(0, (parseFloat(currentLoan.paid_amount || '0') / parseFloat(currentLoan.total_repayment_amount || currentLoan.principal_amount)) * 100)))}%</span>
                                         </div>
                                         <div className="h-2.5 w-full bg-amber-100 dark:bg-amber-800 rounded-full overflow-hidden shadow-inner">
                                             <div
                                                 className="h-full bg-amber-500 shadow-lg shadow-amber-500/50 transition-all duration-1000 ease-out"
-                                                style={{ width: `${Math.min(100, (parseFloat(currentLoan.paid_amount || '0') / parseFloat(currentLoan.principal_amount)) * 100)}%` }}
+                                                style={{ width: `${Math.min(100, Math.max(0, (parseFloat(currentLoan.paid_amount || '0') / parseFloat(currentLoan.total_repayment_amount || currentLoan.principal_amount)) * 100))}%` }}
                                             ></div>
                                         </div>
                                     </div>
