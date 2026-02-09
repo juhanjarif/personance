@@ -6,6 +6,12 @@ Personance is a web-based personal finance management system designed to help it
 
 ## **How to Run**
 
+### Clone the repository
+```bash
+git clone https://github.com/juhanjarif/personance.git
+```
+*Then follow the next steps below:*
+
 ***Important:** Make sure Docker Desktop is running in the background before starting the project.*
 
 ### 1. Start Database (Docker)

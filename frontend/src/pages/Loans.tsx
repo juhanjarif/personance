@@ -444,6 +444,11 @@ const Loans = () => {
                                         min="1"
                                         max={Math.max(0, parseFloat(selectedLoan.principal_amount) - parseFloat(selectedLoan.paid_amount || '0'))}
                                     />
+                                    {paymentAmount && (
+                                        <p className="text-xs font-bold text-amber-600 dark:text-amber-400 mt-1 text-right">
+                                            Tk. {Number(paymentAmount).toLocaleString()}
+                                        </p>
+                                    )}
                                 </div>
                                 <button type="submit" className="w-full py-3 rounded-xl bg-amber-400 text-amber-900 font-black uppercase tracking-wider hover:bg-amber-500 transition-colors shadow-lg shadow-amber-400/20">
                                     Process Payment

@@ -176,6 +176,11 @@ const Planning: FC = () => {
                       onChange={e => setBudgetForm({ ...budgetForm, amountLimit: e.target.value })}
                       required
                     />
+                    {budgetForm.amountLimit && (
+                      <p className="text-xs font-bold text-emerald-600 dark:text-emerald-400 mt-1 text-right">
+                        Tk. {Number(budgetForm.amountLimit).toLocaleString()}
+                      </p>
+                    )}
                   </div>
                   <div className="grid grid-cols-2 gap-4">
                     <div>
@@ -252,7 +257,7 @@ const Planning: FC = () => {
                     <input
                       type="text"
                       placeholder="e.g. Travel Fund"
-                      className="w-full px-4 py-3 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-white"
+                      className="w-full px-4 py-3 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-white text-xm font-bold"
                       value={goalForm.goalName}
                       onChange={e => setGoalForm({ ...goalForm, goalName: e.target.value })}
                       required
@@ -267,6 +272,11 @@ const Planning: FC = () => {
                       onChange={e => setGoalForm({ ...goalForm, targetAmount: e.target.value })}
                       required
                     />
+                    {goalForm.targetAmount && (
+                      <p className="text-[14px] font-black uppercase tracking-widest text-emerald-300 dark:text-emerald-400 mt-2 text-right">
+                        Total Target: Tk. {Number(goalForm.targetAmount).toLocaleString()}
+                      </p>
+                    )}
                   </div>
                   <div>
                     <label className="block text-xs font-black uppercase tracking-widest text-gray-400 mb-1">Deadline</label>
@@ -278,6 +288,19 @@ const Planning: FC = () => {
                       onChange={e => setGoalForm({ ...goalForm, deadline: e.target.value })}
                       required
                     />
+                    {goalForm.targetAmount && goalForm.deadline && (
+                      <div className="mt-2 p-3 rounded-lg bg-emerald-50 dark:bg-emerald-900/20 border border-emerald-100 dark:border-emerald-800/30">
+                        <div className="flex justify-between items-center">
+                          <span className="text-xs font-black uppercase tracking-widest text-gray-400">Monthly Target</span>
+                          <span className="text-lg font-black text-emerald-600 dark:text-emerald-400">
+                            Tk. {Math.round(parseFloat(goalForm.targetAmount) / Math.max(1, (new Date(goalForm.deadline).getFullYear() - new Date().getFullYear()) * 12 + (new Date(goalForm.deadline).getMonth() - new Date().getMonth()))).toLocaleString()}
+                          </span>
+                        </div>
+                        <p className="text-[13px] text-gray-400 mt-1 italic text-right">
+                          *Estimated based on {Math.max(1, (new Date(goalForm.deadline).getFullYear() - new Date().getFullYear()) * 12 + (new Date(goalForm.deadline).getMonth() - new Date().getMonth()))} months
+                        </p>
+                      </div>
+                    )}
                   </div>
                   <button type="submit" className="w-full py-3 rounded-xl bg-emerald-600 text-white font-bold hover:bg-emerald-700 transition-all shadow-lg shadow-emerald-500/20">
                     Create Goal
@@ -287,7 +310,7 @@ const Planning: FC = () => {
             </div>
             <div className="lg:col-span-8">
               <div className="bg-white dark:bg-gray-800 rounded-3xl p-8 border border-gray-100 dark:border-gray-700 shadow-xl">
-                <h4 className="text-[10px] font-black uppercase tracking-[0.2em] text-gray-400 mb-8">Active Goals Tracked</h4>
+                <h4 className="text-[15px] font-black uppercase tracking-[0.2em] text-gray-400 mb-8">Active Goals Tracked</h4>
                 {goals.length === 0 ? (
                   <div className="py-16 text-center border-2 border-dashed border-gray-100 dark:border-gray-700 rounded-3xl">
                     <p className="text-gray-400 font-medium italic">No active goals yet.</p>
@@ -309,12 +332,24 @@ const Planning: FC = () => {
                             </svg>
                           </button>
                         </div>
-                        <p className="text-emerald-600 dark:text-emerald-400 text-[10px] font-black uppercase tracking-[0.2em] mb-2">{goal.goal_name}</p>
-                        <h5 className="text-2xl font-black text-gray-900 dark:text-white mb-1">Tk. {Number(goal.target_amount).toLocaleString()}</h5>
-                        <p className="text-xs font-bold text-emerald-600 dark:text-emerald-400 mb-4">
-                          Saved Tk. {Number(goal.current_amount || 0).toLocaleString()} of Tk. {Number(goal.target_amount).toLocaleString()}
-                        </p>
-                        <div className="flex justify-between items-center text-[10px] font-bold text-gray-400 uppercase tracking-widest pt-4 border-t border-emerald-100/50 dark:border-emerald-800/50">
+                        <p className="text-[22px] font-black text-emerald-600 dark:text-white uppercase tracking-tight mb-4 shadow-sm">{goal.goal_name}</p>
+
+                        <div className="mb-4">
+                          <p className="text-3xl font-black text-gray-900 dark:text-white flex flex-wrap items-baseline gap-2">
+                            <span className="text-[16px] font-bold text-gray-400 uppercase tracking-widest">Saved</span>
+                            <span>Tk. {Number(goal.current_amount || 0).toLocaleString()}</span>
+                            <span className="text-[18px] font-bold text-emerald-600 dark:text-emerald-400">
+                              of Tk. {Number(goal.target_amount).toLocaleString()}
+                            </span>
+                          </p>
+                          {goal.deadline && (
+                            <p className="text-xs font-medium text-emerald-600/80 dark:text-emerald-400/80 mt-4 tracking-wide">
+                              Monthly Target Tk. {Math.round(Math.max(0, (parseFloat(goal.target_amount) - parseFloat(goal.current_amount || '0')) / Math.max(1, (new Date(goal.deadline).getFullYear() - new Date().getFullYear()) * 12 + (new Date(goal.deadline).getMonth() - new Date().getMonth())))).toLocaleString()}
+                            </p>
+                          )}
+                        </div>
+
+                        <div className="flex justify-between items-center text-[13px] font-bold text-gray-400 uppercase tracking-widest pt-4 border-t border-emerald-100/50 dark:border-emerald-800/50">
                           <span>Deadline</span>
                           <span className="text-gray-700 dark:text-gray-300">{new Date(goal.deadline).toLocaleDateString()}</span>
                         </div>
@@ -383,6 +418,11 @@ const Planning: FC = () => {
                     required
                     min="1"
                   />
+                  {contributionForm.amount && (
+                    <p className="text-xs font-bold text-emerald-600 dark:text-emerald-400 mt-1 text-right">
+                      Tk. {Number(contributionForm.amount).toLocaleString()}
+                    </p>
+                  )}
                 </div>
                 <button type="submit" className="w-full py-3 rounded-xl bg-emerald-500 text-white font-black uppercase tracking-wider hover:bg-emerald-600 transition-colors shadow-lg shadow-emerald-500/20">
                   Confirm Contribution
