@@ -80,7 +80,7 @@ const Layout: FC<LayoutProps> = ({ children }) => {
             <div className="flex items-center">
               <Link
                 to="/"
-                className="text-2xl font-black bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent"
+                className="text-2xl font-black bg-linear-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent"
               >
                 Personance
               </Link>
