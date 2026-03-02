@@ -4,7 +4,7 @@ const createLoan = async (userId, loanData) => {
     const {
         purpose, principalAmount, interestRate,
         interestType, paymentFrequency, startDate,
-        gracePeriodMonths, notes
+        gracePeriodMonths, notes, totalRepaymentAmount, returnFrequency, dueDate
     } = loanData;
 
     // Query: Create Loan
@@ -12,15 +12,17 @@ const createLoan = async (userId, loanData) => {
         INSERT INTO loans (
             user_id, purpose, principal_amount, 
             interest_rate, interest_type, payment_frequency, 
-            start_date, grace_period_months, notes
+            start_date, grace_period_months, notes,
+            total_repayment_amount, return_frequency, due_date
         ) 
-        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9) 
+        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12) 
         RETURNING *
     `;
     const values = [
         userId, purpose, principalAmount,
         interestRate, interestType, paymentFrequency,
-        startDate, gracePeriodMonths || 0, notes
+        startDate, gracePeriodMonths || 0, notes,
+        totalRepaymentAmount, returnFrequency || 'MONTHLY', dueDate
     ];
     const result = await db.query(query, values);
     return result.rows[0];

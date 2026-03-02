@@ -78,6 +78,8 @@ RETURNS TRIGGER AS $$
 DECLARE
     cur_bal DECIMAL;
     expense_id INT;
+    v_budget_limit DECIMAL;
+    v_spent_so_far DECIMAL;
 BEGIN
     IF NEW.amount <= 0 THEN
         RAISE EXCEPTION 'Transaction amount must be positive';
@@ -86,9 +88,32 @@ BEGIN
     SELECT transaction_type_id INTO expense_id FROM transaction_types WHERE type_name = 'expense';
 
     IF NEW.transaction_type_id = expense_id THEN
+        -- Check Account Balance
         SELECT current_balance INTO cur_bal FROM accounts WHERE account_id = NEW.account_id;
         IF cur_bal < NEW.amount THEN
              RAISE EXCEPTION 'Insufficient funds';
+        END IF;
+
+        -- Check Budget
+        -- Get total monthly budget (category_id is NULL for total budget)
+        SELECT amount_limit INTO v_budget_limit 
+        FROM budgets 
+        WHERE user_id = NEW.user_id 
+          AND category_id IS NULL 
+          AND NEW.transaction_date BETWEEN start_date AND end_date;
+
+        IF v_budget_limit IS NOT NULL THEN
+            -- Calculate spent in current budget period
+            SELECT COALESCE(SUM(amount), 0) INTO v_spent_so_far
+            FROM transactions
+            WHERE user_id = NEW.user_id
+              AND transaction_type_id = expense_id
+              AND transaction_date BETWEEN (SELECT start_date FROM budgets WHERE user_id = NEW.user_id AND category_id IS NULL AND NEW.transaction_date BETWEEN start_date AND end_date)
+                                      AND (SELECT end_date FROM budgets WHERE user_id = NEW.user_id AND category_id IS NULL AND NEW.transaction_date BETWEEN start_date AND end_date);
+
+            IF (v_spent_so_far + NEW.amount) > v_budget_limit THEN
+                RAISE EXCEPTION 'Transaction exceeds budget limit (Tk. %)', v_budget_limit;
+            END IF;
         END IF;
     END IF;
     
@@ -191,6 +216,51 @@ BEGIN
     UPDATE loans 
     SET paid_amount = COALESCE(paid_amount, 0) + p_amount 
     WHERE loan_id = p_loan_id;
+
+    -- Automatically close loan if paid off
+    UPDATE loans
+    SET status = 'closed'
+    WHERE loan_id = p_loan_id AND paid_amount >= total_repayment_amount;
+
+    COMMIT;
+END;
+$$;
+
+-- Procedure: add_goal_money
+CREATE OR REPLACE PROCEDURE add_goal_money(
+    p_goal_id INT,
+    p_account_id INT,
+    p_amount DECIMAL,
+    p_user_id INT
+)
+LANGUAGE plpgsql
+AS $$
+DECLARE
+    v_goal_name VARCHAR;
+    v_account_name VARCHAR;
+    expense_id INT;
+BEGIN
+    SELECT goal_name INTO v_goal_name FROM financial_goals WHERE financial_goal_id = p_goal_id;
+    
+    SELECT account_name INTO v_account_name FROM accounts WHERE account_id = p_account_id;
+
+    SELECT transaction_type_id INTO expense_id FROM transaction_types WHERE type_name = 'expense';
+    
+    -- Get expense type ID
+    SELECT transaction_type_id INTO expense_id FROM transaction_types WHERE type_name = 'expense';
+
+    -- Create Transaction
+    INSERT INTO transactions (user_id, account_id, category_id, amount, transaction_type_id, description)
+    VALUES (p_user_id, p_account_id, NULL, p_amount, expense_id, 'Goal Contribution: ' || v_goal_name);
+
+    -- Update Goal Current Amount
+    UPDATE financial_goals 
+    SET current_amount = COALESCE(current_amount, 0) + p_amount 
+    WHERE financial_goal_id = p_goal_id;
+
+    -- Create Notification
+    INSERT INTO notifications (user_id, title, message, is_read)
+    VALUES (p_user_id, 'Goal Contribution', 'You added Tk. ' || p_amount || ' to goal: ' || v_goal_name, FALSE);
 
     COMMIT;
 END;

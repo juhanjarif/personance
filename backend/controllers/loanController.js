@@ -5,7 +5,7 @@ const createLoan = async (req, res) => {
         const {
             purpose, principalAmount, interestRate,
             interestType, paymentFrequency, startDate,
-            gracePeriodMonths, notes
+            gracePeriodMonths, notes, totalRepaymentAmount, returnFrequency, dueDate
         } = req.body;
 
         if (!purpose || !principalAmount || !interestRate || !startDate) {
@@ -15,7 +15,7 @@ const createLoan = async (req, res) => {
         const newLoan = await loanModel.createLoan(req.user.id, {
             purpose, principalAmount, interestRate,
             interestType, paymentFrequency, startDate,
-            gracePeriodMonths, notes
+            gracePeriodMonths, notes, totalRepaymentAmount, returnFrequency, dueDate
         });
 
         res.status(201).json(newLoan);

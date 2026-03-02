@@ -29,19 +29,23 @@ interface Goal {
     financial_goal_id: number;
     goal_name: string;
     target_amount: string;
+    current_amount: string;
     created_at: string;
+    deadline?: string;
 }
 
 interface Loan {
     loan_id: number;
-    lender_name: string;
     purpose: string;
     principal_amount: string;
-    interest_rate: string;
+    paid_amount?: string;
     status: 'active' | 'closed';
-    payment_frequency: 'monthly' | 'quarterly';
-    due_date: string;
-    paid_amount: string;
+    total_repayment_amount?: string;
+    return_frequency?: string;
+    grace_period_months?: number;
+    start_date?: string;
+    created_at?: string;
+    due_date?: string;
 }
 
 const Dashboard = () => {
@@ -53,17 +57,8 @@ const Dashboard = () => {
     const [loans, setLoans] = useState<Loan[]>([]);
     const [loading, setLoading] = useState(true);
     const [currentGoalIndex, setCurrentGoalIndex] = useState(0);
-    const [allTransactions, setAllTransactions] = useState<Transaction[]>([]);
+    const [currentLoanIndex, setCurrentLoanIndex] = useState(0);
 
-    useEffect(() => {
-        const fetchAllTxs = async () => {
-            try {
-                const res = await api.get<Transaction[]>('/transactions');
-                setAllTransactions(res.data);
-            } catch (err) { console.error(err); }
-        };
-        if (goals.length > 0) fetchAllTxs();
-    }, [goals.length]);
 
     useEffect(() => {
         const fetchData = async () => {
@@ -118,20 +113,20 @@ const Dashboard = () => {
         setCurrentGoalIndex(prev => (prev - 1 + goals.length) % goals.length);
     };
 
+    const nextLoan = () => {
+        setCurrentLoanIndex(prev => (prev + 1) % loans.length);
+    };
+
+    const prevLoan = () => {
+        setCurrentLoanIndex(prev => (prev - 1 + loans.length) % loans.length);
+    };
+
     if (loading) return <div className="text-center py-10 text-gray-500">Loading...</div>;
 
     const currentGoal = goals[currentGoalIndex];
+    const currentLoan = loans[currentLoanIndex];
 
-    let goalProgressBalance = 0;
-    if (currentGoal) {
-        const goalCreated = new Date(currentGoal.created_at);
-        const goalTxs = allTransactions.filter(t => new Date(t.created_at) >= goalCreated);
-        goalProgressBalance = goalTxs.reduce((sum, t) => {
-            if (t.transaction_type === 'income') return sum + parseFloat(t.amount);
-            if (t.transaction_type === 'expense') return sum - parseFloat(t.amount);
-            return sum;
-        }, 0);
-    }
+    const goalProgressBalance = currentGoal ? parseFloat(currentGoal.current_amount || '0') : 0;
 
     return (
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
@@ -234,7 +229,7 @@ const Dashboard = () => {
                 <div className="p-8 rounded-3xl bg-emerald-50 dark:bg-emerald-900/10 border border-emerald-100 dark:border-emerald-700/50 shadow-sm relative overflow-hidden min-h-[250px] flex flex-col justify-between">
                     <div>
                         <div className="flex justify-between items-start mb-6">
-                            <h3 className="text-[10px] font-black uppercase tracking-[0.2em] text-emerald-600 dark:text-emerald-400">Financial Goals</h3>
+                            <h3 className="text-sm font-black uppercase tracking-[0.2em] text-emerald-600 dark:text-emerald-400">Financial Goals</h3>
                             {goals.length > 1 && (
                                 <div className="flex space-x-2">
                                     <button onClick={prevGoal} className="p-1 px-2.5 rounded-lg bg-emerald-100 dark:bg-emerald-800 text-emerald-600 dark:text-emerald-400 hover:bg-emerald-200 transition-all font-bold text-sm shadow-sm hover:scale-105 active:scale-95">&larr;</button>
@@ -244,15 +239,29 @@ const Dashboard = () => {
                         </div>
 
                         {goals.length > 0 ? (
-                            <div key={currentGoal?.financial_goal_id} className="fade-in">
+                            <Link key={currentGoal?.financial_goal_id} to="/planning?tab=goal" className="fade-in block group">
                                 <div className="space-y-4">
                                     <p className="text-emerald-600 dark:text-emerald-400 text-xs font-black uppercase tracking-widest">{currentGoal.goal_name}</p>
-                                    <h3 className="text-4xl font-black text-gray-900 dark:text-white flex items-baseline">
-                                        <span className="text-sm mr-1 opacity-50 font-medium font-sans italic">Target Tk.</span>
-                                        {Number(currentGoal.target_amount).toLocaleString()}
-                                    </h3>
 
-                                    <div className="mt-8">
+                                    <div className="p-5 rounded-2xl border border-emerald-100/10 shadow-sm bg-white/5 backdrop-blur-sm flex flex-col h-28">
+                                        <div className="mb-2 flex flex-col h-full">
+                                            <p className="text-2xl font-black text-white mb-1 flex flex-wrap items-baseline gap-2">
+                                                <span className="text-sm font-bold text-emerald-100 uppercase tracking-widest">Saved</span>
+                                                <span>Tk. {Number(currentGoal.current_amount || 0).toLocaleString()}</span>
+                                                <span className="text-sm font-bold text-emerald-100">
+                                                    of Tk. {Number(currentGoal.target_amount).toLocaleString()}
+                                                </span>
+                                            </p>
+
+                                            {currentGoal.deadline && (
+                                                <p className="text-xs font-medium uppercase text-emerald-100/90 tracking-wide mt-auto">
+                                                    Monthly Target: Tk. {Math.round(Math.max(0, (parseFloat(currentGoal.target_amount) - parseFloat(currentGoal.current_amount || '0')) / Math.max(1, (new Date(currentGoal.deadline).getFullYear() - new Date().getFullYear()) * 12 + (new Date(currentGoal.deadline).getMonth() - new Date().getMonth())))).toLocaleString()}
+                                                </p>
+                                            )}
+                                        </div>
+                                    </div>
+
+                                    <div className="mt-4">
                                         <div className="flex justify-between items-center text-[10px] font-bold text-emerald-600/70 mb-1.5 px-0.5">
                                             <span className="uppercase tracking-widest">Progress</span>
                                             <span>{Math.round(Math.max(0, (goalProgressBalance / parseFloat(currentGoal.target_amount)) * 100))}%</span>
@@ -265,7 +274,7 @@ const Dashboard = () => {
                                         </div>
                                     </div>
                                 </div>
-                            </div>
+                            </Link>
                         ) : (
                             <div className="text-center py-10">
                                 <p className="text-emerald-400 text-sm italic font-medium mb-4">No goals active</p>
@@ -283,51 +292,124 @@ const Dashboard = () => {
                     )}
                 </div>
 
-                <div className="p-8 rounded-3xl bg-amber-50 dark:bg-amber-900/10 border border-amber-100 dark:border-amber-700/50 shadow-sm relative overflow-hidden">
-                    <div className="flex justify-between items-center mb-6">
-                        <h3 className="text-[10px] font-black uppercase tracking-[0.2em] text-amber-600 dark:text-amber-400">Active Loans</h3>
-                        <Link to="/loans" className="text-[10px] font-black uppercase tracking-widest text-amber-500 hover:text-amber-600">&rarr;</Link>
+                <div className="p-8 rounded-3xl bg-amber-50 dark:bg-amber-900/10 border border-amber-100 dark:border-amber-700/50 shadow-sm relative overflow-hidden min-h-[250px] flex flex-col justify-between">
+                    <div>
+                        <div className="flex justify-between items-start mb-6">
+                            <h3 className="text-sm font-black uppercase tracking-[0.2em] text-amber-600 dark:text-amber-400">Active Loans</h3>
+                            {loans.length > 1 && (
+                                <div className="flex space-x-2">
+                                    <button onClick={prevLoan} className="p-1 px-2.5 rounded-lg bg-amber-100 dark:bg-amber-800 text-amber-600 dark:text-amber-400 hover:bg-amber-200 transition-all font-bold text-sm shadow-sm hover:scale-105 active:scale-95">&larr;</button>
+                                    <button onClick={nextLoan} className="p-1 px-2.5 rounded-lg bg-amber-100 dark:bg-amber-800 text-amber-600 dark:text-amber-400 hover:bg-amber-200 transition-all font-bold text-sm shadow-sm hover:scale-105 active:scale-95">&rarr;</button>
+                                </div>
+                            )}
+                        </div>
+
+                        {loans.length === 0 ? (
+                            <div className="text-center py-6">
+                                <p className="text-amber-400 text-sm italic font-medium mb-4">No active loans</p>
+                                <Link to="/loans" className="inline-block px-6 py-2 rounded-xl bg-amber-100/50 text-amber-900 dark:text-amber-300 font-bold text-xs hover:bg-amber-100 transition-colors">Add Loan &rarr;</Link>
+                            </div>
+                        ) : (
+                            <Link key={currentLoan?.loan_id} to="/loans" className="fade-in block group">
+                                <div className="space-y-4">
+                                    <p className="text-amber-600 dark:text-amber-400 text-xs font-black uppercase tracking-widest">{currentLoan.purpose}</p>
+
+                                    <div className="bg-white dark:bg-amber-900/20 p-5 rounded-2xl border border-amber-100 dark:border-amber-800/30 shadow-sm space-y-3">
+                                        <div className="flex items-baseline flex-wrap">
+                                            <span className="text-xs font-bold text-gray-400 uppercase tracking-widest mr-2">Due</span>
+                                            <span className="text-xl font-black text-gray-900 dark:text-white mr-2">
+                                                Tk. {Math.max(0, parseFloat(currentLoan.total_repayment_amount || currentLoan.principal_amount) - parseFloat(currentLoan.paid_amount || '0')).toLocaleString()}
+                                            </span>
+                                            <span className="text-[10px] font-bold text-gray-400">
+                                                of Tk. {Number(currentLoan.total_repayment_amount || currentLoan.principal_amount).toLocaleString()}
+                                            </span>
+                                        </div>
+
+                                        <div className="p-3 rounded-xl bg-amber-50/50 dark:bg-amber-900/30 border border-amber-100/30">
+                                            <div className="flex justify-between items-center mb-1">
+                                                <span className="text-[10px] font-black uppercase text-gray-400">Next Installment</span>
+                                                <span className="text-sm font-black text-amber-600 dark:text-amber-400">
+                                                    Tk. {(() => {
+                                                        const start = new Date(currentLoan.created_at || currentLoan.start_date || new Date());
+                                                        const due = new Date(currentLoan.due_date || (new Date(start.getTime() + 30 * 24 * 60 * 60 * 1000)));
+                                                        const today = new Date();
+                                                        const monthsLeft = Math.max(1, Math.ceil((due.getTime() - today.getTime()) / (1000 * 60 * 60 * 24 * 30.44)));
+
+                                                        const remaining = Math.max(0, parseFloat(currentLoan.total_repayment_amount || currentLoan.principal_amount) - parseFloat(currentLoan.paid_amount || '0'));
+
+                                                        let freq = 1;
+                                                        const rf = (currentLoan.return_frequency || 'MONTHLY').toUpperCase();
+                                                        if (rf === 'QUARTERLY') freq = 3;
+                                                        else if (rf === 'HALF-YEARLY') freq = 6;
+                                                        else if (rf === 'YEARLY') freq = 12;
+
+                                                        const remainingInstallments = Math.max(1, monthsLeft / freq);
+                                                        return Math.ceil(remaining / remainingInstallments).toLocaleString();
+                                                    })()}
+                                                </span>
+                                            </div>
+                                            <div className="flex justify-between items-center text-[10px] font-bold text-gray-500">
+                                                <span className="uppercase tracking-tight">Due Date</span>
+                                                <span>
+                                                    {(() => {
+                                                        const start = new Date(currentLoan.created_at || currentLoan.start_date || new Date());
+                                                        const graceDays = (currentLoan.grace_period_months || 0) * 30;
+                                                        let freqDays = 30;
+                                                        const rf = (currentLoan.return_frequency || 'MONTHLY').toUpperCase();
+                                                        if (rf === 'QUARTERLY') freqDays = 90;
+                                                        else if (rf === 'HALF-YEARLY') freqDays = 180;
+                                                        else if (rf === 'YEARLY') freqDays = 365;
+
+                                                        const total = parseFloat(currentLoan.total_repayment_amount || currentLoan.principal_amount);
+                                                        const paid = parseFloat(currentLoan.paid_amount || '0');
+
+                                                        const instSize = (() => {
+                                                            const s = new Date(currentLoan.created_at || currentLoan.start_date || new Date());
+                                                            const d = new Date(currentLoan.due_date || (new Date(s.getTime() + 30 * 24 * 60 * 60 * 1000)));
+                                                            const tm = Math.max(1, Math.ceil((d.getTime() - s.getTime()) / (1000 * 60 * 60 * 24 * 30.44)));
+                                                            const em = Math.max(1, tm - (currentLoan.grace_period_months || 0));
+                                                            let f = 1;
+                                                            if (rf === 'QUARTERLY') f = 3;
+                                                            else if (rf === 'HALF-YEARLY') f = 6;
+                                                            else if (rf === 'YEARLY') f = 12;
+                                                            const ti = Math.max(1, em / f);
+                                                            return total / ti;
+                                                        })();
+
+                                                        const installmentsPaid = Math.floor(paid / (instSize || 1));
+                                                        const nextDate = new Date(start);
+                                                        nextDate.setDate(nextDate.getDate() + graceDays + ((installmentsPaid + 1) * freqDays));
+
+                                                        const finalDue = new Date(currentLoan.due_date || nextDate);
+                                                        return (nextDate > finalDue ? finalDue : nextDate).toLocaleDateString();
+                                                    })()}
+                                                </span>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <div className="mt-4">
+                                        <div className="flex justify-between items-center text-[10px] font-bold text-amber-600/70 mb-1.5 px-0.5">
+                                            <span className="uppercase tracking-widest">Progress</span>
+                                            <span>{Math.round(Math.min(100, Math.max(0, (parseFloat(currentLoan.paid_amount || '0') / parseFloat(currentLoan.total_repayment_amount || currentLoan.principal_amount)) * 100)))}%</span>
+                                        </div>
+                                        <div className="h-2.5 w-full bg-amber-100 dark:bg-amber-800 rounded-full overflow-hidden shadow-inner">
+                                            <div
+                                                className="h-full bg-amber-500 shadow-lg shadow-amber-500/50 transition-all duration-1000 ease-out"
+                                                style={{ width: `${Math.min(100, Math.max(0, (parseFloat(currentLoan.paid_amount || '0') / parseFloat(currentLoan.total_repayment_amount || currentLoan.principal_amount)) * 100))}%` }}
+                                            ></div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </Link>
+                        )}
                     </div>
 
-                    {loans.length === 0 ? (
-                        <div className="text-center py-6">
-                            <p className="text-amber-400 text-sm italic font-medium mb-4">No active loans</p>
-                            <Link to="/loans" className="inline-block px-6 py-2 rounded-xl bg-amber-100/50 text-amber-900 dark:text-amber-300 font-bold text-xs hover:bg-amber-100 transition-colors">Add Loan &rarr;</Link>
-                        </div>
-                    ) : (
-                        <div className="space-y-4">
-                            {loans.map(loan => {
-                                const principal = parseFloat(loan.principal_amount);
-                                const paid = parseFloat(loan.paid_amount || '0');
-                                const remaining = Math.max(0, principal - paid);
-                                const progress = Math.min(100, (paid / principal) * 100);
-
-                                return (
-                                    <Link key={loan.loan_id} to="/loans" className="block p-4 rounded-xl bg-white dark:bg-gray-800 border border-amber-100 dark:border-amber-900/30 hover:shadow-lg hover:shadow-amber-500/10 transition-all group">
-                                        <div className="flex justify-between items-start mb-2">
-                                            <div>
-                                                <h4 className="text-sm font-black text-gray-900 dark:text-white group-hover:text-amber-600 transition-colors uppercase tracking-tight">{loan.purpose}</h4>
-                                            </div>
-                                            <div className="text-right">
-                                                <p className="text-xs font-black text-gray-900 dark:text-white">
-                                                    Due Tk. {remaining.toLocaleString()}
-                                                </p>
-                                            </div>
-                                        </div>
-                                        <div className="space-y-1">
-                                            <div className="w-full bg-gray-100 dark:bg-gray-700 rounded-full h-1.5 overflow-hidden">
-                                                <div
-                                                    className="bg-amber-400 h-1.5 rounded-full transition-all duration-1000"
-                                                    style={{ width: `${progress}%` }}
-                                                ></div>
-                                            </div>
-                                            <div className="flex justify-end">
-                                                <span className="text-[10px] font-bold text-amber-500">{Math.round(progress)}% Repaid</span>
-                                            </div>
-                                        </div>
-                                    </Link>
-                                );
-                            })}
+                    {loans.length > 0 && (
+                        <div className="mt-6 flex justify-center space-x-1.5">
+                            {loans.map((_, i) => (
+                                <div key={i} className={`h-1.5 rounded-full transition-all duration-300 ${i === currentLoanIndex ? 'w-6 bg-amber-500' : 'w-1.5 bg-amber-200'}`}></div>
+                            ))}
                         </div>
                     )}
                 </div>

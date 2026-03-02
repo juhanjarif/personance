@@ -15,5 +15,7 @@ router.delete('/goals/:id', authenticateToken, financialController.deleteGoal);
 
 // Categories
 router.get('/categories', authenticateToken, financialController.getCategories);
+router.post('/goals/add-money', authenticateToken, financialController.addGoalMoney);
+
 
 module.exports = router;
