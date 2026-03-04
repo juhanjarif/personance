@@ -79,13 +79,29 @@ const Analytics: FC = () => {
 
   return (
     <div className="space-y-10">
-      <header>
-        <h1 className="text-3xl font-black text-gray-900 dark:text-white">
-          Financial Analytics
-        </h1>
-        <p className="text-gray-500 dark:text-gray-400 mt-2 font-medium">
-          Deep dive into your spending and income patterns.
-        </p>
+      <header className="flex flex-col md:flex-row justify-between items-baseline border-b border-gray-100 dark:border-gray-700 pb-6">
+        <div>
+          <h1 className="text-2xl font-black text-gray-900 dark:text-white">
+            Analytics
+          </h1>
+          <p className="text-gray-400 text-xs font-semibold uppercase tracking-widest mt-1">
+            Overview of spending patterns
+          </p>
+        </div>
+        <div className="mt-4 md:mt-0 flex gap-2">
+          <div className="px-4 py-2 bg-white dark:bg-gray-800 rounded-xl border border-gray-100 dark:border-gray-700 shadow-sm text-xs font-bold">
+            <span className="text-gray-400 uppercase mr-2">Income:</span>
+            <span className="text-emerald-500">
+              Tk. {Number(monthlySummary.total_income).toLocaleString()}
+            </span>
+          </div>
+          <div className="px-4 py-2 bg-white dark:bg-gray-800 rounded-xl border border-gray-100 dark:border-gray-700 shadow-sm text-xs font-bold">
+            <span className="text-gray-400 uppercase mr-2">Expense:</span>
+            <span className="text-red-500">
+              Tk. {Number(monthlySummary.total_expense).toLocaleString()}
+            </span>
+          </div>
+        </div>
       </header>
 
       <section>
@@ -126,64 +142,52 @@ const Analytics: FC = () => {
                 key={cat.category_id}
                 className="min-w-[300px] snap-start bg-white dark:bg-gray-800 p-8 rounded-3xl border border-gray-100 dark:border-gray-700 shadow-xl shadow-gray-200/50 dark:shadow-none hover:border-blue-500 transition-all group"
               >
-                <div className="flex justify-between items-start mb-6">
-                  <h4 className="text-sm font-black uppercase tracking-widest text-gray-400 group-hover:text-blue-500 transition-colors">
+                <div className="flex justify-between items-center mb-6">
+                  <h4 className="text-xs font-black uppercase tracking-[0.2em] text-gray-400 group-hover:text-blue-500 transition-colors">
                     {cat.category_name}
                   </h4>
-                  <div className="h-8 w-8 rounded-xl bg-blue-50 dark:bg-blue-900/20 flex items-center justify-center text-blue-600">
-                    <svg
-                      xmlns="http://www.w3.org/2000/svg"
-                      className="h-4 w-4"
-                      fill="none"
-                      viewBox="0 0 24 24"
-                      stroke="currentColor"
-                    >
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth={3}
-                        d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"
-                      />
-                    </svg>
+                  <div className="text-[10px] font-black text-blue-500 px-2 py-0.5 bg-blue-50 dark:bg-blue-900/20 rounded-lg">
+                    {Math.round(
+                      ((categoryTotals[cat.category_id] || 0) /
+                        (Number(monthlySummary.total_expense) || 1)) *
+                        100,
+                    )}
+                    %
                   </div>
                 </div>
 
-                <div className="space-y-2">
-                  <p className="text-xs text-gray-400 font-bold uppercase tracking-tight">
-                    Total Spent
-                  </p>
-                  <p className="text-3xl font-black text-gray-900 dark:text-white tabular-nums">
-                    Tk.{" "}
+                <div className="mt-auto">
+                  <p className="text-3xl font-black text-gray-900 dark:text-white tabular-nums tracking-tighter">
+                    <span className="text-sm text-gray-300 mr-2">Tk.</span>
                     {Number(
                       categoryTotals[cat.category_id] || 0,
                     ).toLocaleString()}
                   </p>
                 </div>
 
-                <div className="mt-8 pt-6 border-t border-gray-50 dark:border-gray-700">
-                  <p className="text-[10px] font-black uppercase tracking-widest text-gray-400 mb-3">
-                    Sub-categories
-                  </p>
-                  <div className="flex flex-wrap gap-2">
-                    {categories.filter(
-                      (c) => c.parent_category_id === cat.category_id,
-                    ).length > 0 ? (
-                      categories
-                        .filter((c) => c.parent_category_id === cat.category_id)
-                        .map((sub) => (
-                          <span
-                            key={sub.category_id}
-                            className="px-3 py-1.5 rounded-xl bg-gray-50 dark:bg-gray-900/50 text-[10px] font-black text-gray-500 border border-transparent hover:border-gray-200 dark:hover:border-gray-700 transition-colors"
-                          >
-                            {sub.category_name}
-                          </span>
-                        ))
-                    ) : (
-                      <span className="text-[10px] italic text-gray-300 font-medium">
-                        No sub-categories defined
+                <div className="mt-8 flex flex-wrap gap-1.5 opacity-60 group-hover:opacity-100 transition-opacity">
+                  {categories
+                    .filter((c) => c.parent_category_id === cat.category_id)
+                    .slice(0, 3)
+                    .map((sub) => (
+                      <span
+                        key={sub.category_id}
+                        className="text-[9px] font-black uppercase text-gray-400"
+                      >
+                        • {sub.category_name}
                       </span>
-                    )}
-                  </div>
+                    ))}
+                  {categories.filter(
+                    (c) => c.parent_category_id === cat.category_id,
+                  ).length > 3 && (
+                    <span className="text-[9px] font-black uppercase text-gray-300">
+                      +{" "}
+                      {categories.filter(
+                        (c) => c.parent_category_id === cat.category_id,
+                      ).length - 3}{" "}
+                      more
+                    </span>
+                  )}
                 </div>
               </div>
             ))}

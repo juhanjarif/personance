@@ -1,4 +1,4 @@
-import { useState, useEffect, FC, ReactNode } from "react";
+import { useEffect, FC, ReactNode } from "react";
 import {
   BrowserRouter as Router,
   Routes,
@@ -15,6 +15,7 @@ import Transactions from "./pages/Transactions";
 import Planning from "./pages/Planning";
 import Loans from "./pages/Loans";
 import AdminDashboard from "./pages/AdminDashboard";
+import AdminLogin from "./pages/AdminLogin";
 import Analytics from "./pages/Analytics";
 
 interface PrivateRouteProps {
@@ -26,6 +27,16 @@ const PrivateRoute: FC<PrivateRouteProps> = ({ children }) => {
   return user ? <>{children}</> : <Navigate to="/login" />;
 };
 
+const AdminPrivateRoute: FC<PrivateRouteProps> = ({ children }) => {
+  const isAdminAuthenticated =
+    localStorage.getItem("isAdminAuthenticated") === "true";
+  return isAdminAuthenticated ? (
+    <>{children}</>
+  ) : (
+    <Navigate to="/admin/login" />
+  );
+};
+
 interface LayoutProps {
   children: ReactNode;
 }
@@ -33,7 +44,6 @@ interface LayoutProps {
 const Layout: FC<LayoutProps> = ({ children }) => {
   const { logout, user } = useAuth();
   const location = useLocation();
-  const [theme, setTheme] = useState(localStorage.getItem("theme") || "light");
 
   const isActive = (path: string, search?: string) => {
     if (search) {
@@ -58,20 +68,8 @@ const Layout: FC<LayoutProps> = ({ children }) => {
   };
 
   useEffect(() => {
-    const root = document.documentElement;
-    if (theme === "dark") {
-      root.classList.add("dark");
-      root.style.colorScheme = "dark";
-    } else {
-      root.classList.remove("dark");
-      root.style.colorScheme = "light";
-    }
-    localStorage.setItem("theme", theme);
-  }, [theme]);
-
-  const toggleTheme = () => {
-    setTheme((prev) => (prev === "light" ? "dark" : "light"));
-  };
+    document.documentElement.classList.add("dark");
+  }, []);
 
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900 transition-colors duration-300">
@@ -129,19 +127,6 @@ const Layout: FC<LayoutProps> = ({ children }) => {
             </div>
 
             <div className="flex items-center space-x-2 sm:space-x-4">
-              <button
-                onClick={toggleTheme}
-                className="px-3 py-2 rounded-xl bg-gray-100 dark:bg-gray-700 hover:ring-2 hover:ring-blue-500 transition-all text-xs font-bold text-gray-700 dark:text-gray-200"
-                aria-label="Toggle Theme"
-                title={
-                  theme === "light"
-                    ? "Switch to Dark Mode"
-                    : "Switch to Light Mode"
-                }
-              >
-                {theme === "light" ? "Dark Mode" : "Light Mode"}
-              </button>
-
               <div className="h-8 w-px bg-gray-200 dark:bg-gray-700 mx-2 hidden sm:block"></div>
 
               <div className="flex items-center space-x-3">
@@ -276,7 +261,15 @@ function App() {
               </PrivateRoute>
             }
           />
-          <Route path="/admin" element={<AdminDashboard />} />
+          <Route path="/admin/login" element={<AdminLogin />} />
+          <Route
+            path="/admin"
+            element={
+              <AdminPrivateRoute>
+                <AdminDashboard />
+              </AdminPrivateRoute>
+            }
+          />
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
       </AuthProvider>
