@@ -274,31 +274,58 @@ AS $$
 DECLARE
     v_loan_record RECORD;
     v_interest_amount DECIMAL;
+    v_interval INTERVAL;
 BEGIN
     -- Loop through all active loans
     FOR v_loan_record IN 
-        SELECT loan_id, principal_amount, interest_rate, interest_type, total_repayment_amount 
-        FROM loans WHERE status = 'active'
+        SELECT loan_id, principal_amount, interest_rate, interest_type, total_repayment_amount, paid_amount, due_date, return_frequency
+        FROM loans WHERE status = 'active' AND due_date <= CURRENT_DATE
     LOOP
-        IF v_loan_record.interest_type = 'Simple' THEN
-            -- Interest on Principal only
-            v_interest_amount := (v_loan_record.principal_amount * v_loan_record.interest_rate / 100);
-        ELSIF v_loan_record.interest_type = 'Compound' THEN
-            -- Interest on the CURRENT total (Principal + existing Interest)
-            v_interest_amount := (COALESCE(v_loan_record.total_repayment_amount, v_loan_record.principal_amount) * v_loan_record.interest_rate / 100);
-        ELSIF v_loan_record.interest_type = 'EMI' THEN
-            -- EMI usually doesn't "accrue" in this way; it's a fixed calculation.
-            -- But for tracking, we might calculate interest on the Reducing Balance:
-            v_interest_amount := ((v_loan_record.principal_amount - v_loan_record.paid_amount) * v_loan_record.interest_rate / 12 / 100);
-        END IF;
+        -- Determine the interval for advancing due date
+        CASE UPPER(v_loan_record.return_frequency)
+            WHEN 'QUARTERLY' THEN v_interval := '3 months'::INTERVAL;
+            WHEN 'HALF-YEARLY' THEN v_interval := '6 months'::INTERVAL;
+            WHEN 'YEARLY' THEN v_interval := '1 year'::INTERVAL;
+            ELSE v_interval := '1 month'::INTERVAL; -- Default to Monthly
+        END CASE;
+
+        -- Catch up if multiple periods have passed
+        WHILE v_loan_record.due_date <= CURRENT_DATE LOOP
+            -- Normalize interest type to lowercase
+            IF LOWER(v_loan_record.interest_type) = 'simple' THEN
+                -- Interest on Principal only (standard APR / 12 for monthly accrual)
+                v_interest_amount := (v_loan_record.principal_amount * v_loan_record.interest_rate / 100) / 12;
+            ELSIF LOWER(v_loan_record.interest_type) = 'compound' THEN
+                -- Interest on the CURRENT total (Principal + existing Interest)
+                v_interest_amount := (COALESCE(v_loan_record.total_repayment_amount, v_loan_record.principal_amount) * v_loan_record.interest_rate / 100) / 12;
+            ELSIF LOWER(v_loan_record.interest_type) = 'emi' THEN
+                -- Interest on Reducing Balance
+                v_interest_amount := ((v_loan_record.principal_amount - COALESCE(v_loan_record.paid_amount, 0)) * v_loan_record.interest_rate / 100) / 12;
+            ELSE
+                v_interest_amount := 0;
+            END IF;
+
+            -- Update the loan record state in the DB
+            UPDATE loans 
+            SET 
+                total_repayment_amount = COALESCE(total_repayment_amount, principal_amount) + v_interest_amount,
+                due_date = due_date + v_interval
+            WHERE loan_id = v_loan_record.loan_id;
+
+            -- Log the accrual
+            INSERT INTO audit_logs (user_id, action_type, details)
+            VALUES (NULL, 'UPDATE', 'Interest auto-accrued for Loan ID: ' || v_loan_record.loan_id || '. Amount: ' || v_interest_amount || '. New Due Date: ' || (v_loan_record.due_date + v_interval));
+
+            -- Update local loop variables to continue catch-up if needed
+            v_loan_record.total_repayment_amount := COALESCE(v_loan_record.total_repayment_amount, v_loan_record.principal_amount) + v_interest_amount;
+            v_loan_record.due_date := v_loan_record.due_date + v_interval;
+        END LOOP;
     END LOOP;
-    
-    COMMIT;
 END;
 $$;
 
 -- Add to 02_procedures_triggers.sql
-CREATE OR REPLACE FUNCTION get_category_tree_total(p_user_id INT, p_parent_category_id INT)
+CREATE OR REPLACE FUNCTION get_category_tree_total(p_user_id INT, p_category_id INT)
 RETURNS DECIMAL AS $$
 DECLARE
     v_total DECIMAL := 0;
@@ -306,7 +333,7 @@ DECLARE
     -- Cursor to find all categories in this branch
     cat_cursor CURSOR FOR 
         WITH RECURSIVE category_tree AS (
-            SELECT category_id FROM categories WHERE category_id = p_parent_category_id
+            SELECT category_id FROM categories WHERE category_id = p_category_id
             UNION ALL
             SELECT c.category_id FROM categories c
             JOIN category_tree ct ON c.parent_category_id = ct.category_id

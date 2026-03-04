@@ -135,5 +135,8 @@ CREATE TABLE IF NOT EXISTS loans (
     notes TEXT,
     status VARCHAR(20) DEFAULT 'active',
     paid_amount DECIMAL(15, 2) DEFAULT 0.00,
+    total_repayment_amount DECIMAL(15, 2),
+    return_frequency VARCHAR(50),
+    due_date DATE,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );

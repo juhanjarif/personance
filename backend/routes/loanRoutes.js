@@ -27,6 +27,5 @@ router.get("/", verifyToken, loanController.getLoans);
 router.delete("/:id", verifyToken, loanController.deleteLoan);
 router.patch("/:id/status", verifyToken, loanController.updateLoanStatus);
 router.post("/repay", verifyToken, loanController.repayLoan);
-router.post("/accrue-interest", verifyToken, loanController.accrueInterest);
 
 module.exports = router;

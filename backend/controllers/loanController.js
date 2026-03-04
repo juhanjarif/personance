@@ -80,17 +80,8 @@ const updateLoanStatus = async (req, res) => {
     res.status(500).json({ message: "Server error updating loan status" });
   }
 };
-
-module.exports = {
-  createLoan,
-  getLoans,
-  deleteLoan,
-  updateLoanStatus,
-};
-
 const repayLoan = async (req, res) => {
   try {
-    console.log("Repayment Request Body:", req.body);
     const { loanId, accountId, amount } = req.body;
     if (!loanId || !accountId || !amount) {
       return res.status(400).json({ message: "Missing required fields" });
@@ -105,23 +96,10 @@ const repayLoan = async (req, res) => {
   }
 };
 
-const accrueInterest = async (req, res) => {
-  try {
-    await loanModel.accrueInterest();
-    res.json({ message: "Interest accrual processed successfully" });
-  } catch (error) {
-    console.error("Accrue Interest Error:", error);
-    res
-      .status(500)
-      .json({ message: "Server error processing interest accrual" });
-  }
-};
-
 module.exports = {
   createLoan,
   getLoans,
   deleteLoan,
   updateLoanStatus,
   repayLoan,
-  accrueInterest,
 };
