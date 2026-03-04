@@ -50,3 +50,15 @@ GROUP BY user_id, transaction_month;
 CREATE INDEX idx_transactions_user_date_covering 
 ON transactions (user_id, transaction_date) 
 INCLUDE (amount, transaction_type_id);
+
+-- Speed up general JOINS and UI lists
+CREATE INDEX idx_accounts_user_id ON accounts(user_id);
+CREATE INDEX idx_transactions_account_id ON transactions(account_id);
+CREATE INDEX idx_transactions_category_id ON transactions(category_id);
+CREATE INDEX idx_budgets_user_id ON budgets(user_id);
+
+-- Speed up the new Analytics tab and hierarchical category lookups
+CREATE INDEX idx_categories_parent ON categories(parent_category_id);
+
+-- Speed up Dashboard goal tracking
+CREATE INDEX idx_financial_goals_user ON financial_goals(user_id);
