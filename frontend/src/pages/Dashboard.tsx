@@ -1,7 +1,6 @@
 import { useState, useEffect } from "react";
 import api from "../api";
 import { Link } from "react-router-dom";
-import MonthlySummary from "../components/MonthlySummary";
 
 interface Transaction {
   transaction_id: number;
@@ -49,11 +48,6 @@ interface Loan {
   due_date?: string;
 }
 
-interface MonthlySummaryData {
-  total_income: string | number;
-  total_expense: string | number;
-}
-
 const Dashboard = () => {
   const [balance, setBalance] = useState(0);
   const [recentTransactions, setRecentTransactions] = useState<Transaction[]>(
@@ -66,10 +60,6 @@ const Dashboard = () => {
   const [loading, setLoading] = useState(true);
   const [currentGoalIndex, setCurrentGoalIndex] = useState(0);
   const [currentLoanIndex, setCurrentLoanIndex] = useState(0);
-  const [monthlySummary, setMonthlySummary] = useState<MonthlySummaryData>({
-    total_income: 0,
-    total_expense: 0,
-  });
 
   useEffect(() => {
     const fetchData = async () => {
@@ -93,11 +83,6 @@ const Dashboard = () => {
         setLoans(
           loansRes.data.filter((l) => l.status === "active").slice(0, 3),
         );
-
-        api
-          .get<MonthlySummaryData>("/transactions/summary/monthly")
-          .then((res) => setMonthlySummary(res.data))
-          .catch((err) => console.error("Monthly summary fetch failed:", err));
 
         const totalBudget = budgetRes.data.find((b) => b.category_id === null);
         setBudget(totalBudget || null);
@@ -265,11 +250,6 @@ const Dashboard = () => {
             </div>
           )}
         </section>
-
-        <MonthlySummary
-          income={Number(monthlySummary.total_income)}
-          expenses={Number(monthlySummary.total_expense)}
-        />
       </div>
 
       <div className="lg:col-span-4 space-y-6">
