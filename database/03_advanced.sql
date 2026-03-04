@@ -46,3 +46,7 @@ SELECT
 FROM transactions t
 JOIN transaction_types tt ON t.transaction_type_id = tt.transaction_type_id
 GROUP BY user_id, transaction_month;
+
+CREATE INDEX idx_transactions_user_date_covering 
+ON transactions (user_id, transaction_date) 
+INCLUDE (amount, transaction_type_id);

@@ -41,7 +41,7 @@ app.get("/reset-db", async (req, res) => {
       __dirname,
       "../database/02_procedures_triggers.sql",
     );
-    const sql3Path = path.join(__dirname, "../database/03_views.sql");
+    const sql3Path = path.join(__dirname, "../database/03_advanced.sql");
 
     console.log("Reading:", sql1Path);
     const sql1 = fs.readFileSync(sql1Path, "utf8");
@@ -54,7 +54,7 @@ app.get("/reset-db", async (req, res) => {
     await db.query(sql1);
     console.log("Executing 02_procedures_triggers.sql...");
     await db.query(sql2);
-    console.log("Executing 03_views.sql...");
+    console.log("Executing 03_advanced.sql...");
     await db.query(sql3);
 
     console.log("DB Reset Successful");
