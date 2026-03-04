@@ -36,3 +36,13 @@ FROM transactions t
 JOIN transaction_types tt ON t.transaction_type_id = tt.transaction_type_id
 GROUP BY transaction_month;
 
+CREATE OR REPLACE VIEW user_monthly_transaction_summary AS
+SELECT 
+    user_id,
+    TO_CHAR(transaction_date, 'YYYY-MM') AS transaction_month,
+    COUNT(transaction_id) AS total_transactions,
+    SUM(CASE WHEN tt.type_name = 'income' THEN amount ELSE 0 END) AS total_income,
+    SUM(CASE WHEN tt.type_name = 'expense' THEN amount ELSE 0 END) AS total_expense
+FROM transactions t
+JOIN transaction_types tt ON t.transaction_type_id = tt.transaction_type_id
+GROUP BY user_id, transaction_month;

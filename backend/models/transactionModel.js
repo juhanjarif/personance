@@ -1,19 +1,41 @@
-const db = require('../db');
+const db = require("../db");
 
-const createTransaction = async (userId, accountId, categoryId, amount, typeId, description) => {
+const createTransaction = async (
+  userId,
+  accountId,
+  categoryId,
+  amount,
+  typeId,
+  description,
+) => {
   // Query: Create Transaction
-  const query = 'INSERT INTO transactions (user_id, account_id, category_id, amount, transaction_type_id, description) VALUES ($1, $2, $3, $4, $5, $6) RETURNING *';
+  const query =
+    "INSERT INTO transactions (user_id, account_id, category_id, amount, transaction_type_id, description) VALUES ($1, $2, $3, $4, $5, $6) RETURNING *";
   const values = [userId, accountId, categoryId, amount, typeId, description];
   const result = await db.query(query, values);
   return result.rows[0];
 };
 
-const transferFunds = async (senderId, receiverId, amount, senderCatId, receiverCatId, userId) => {
-    // Query: Transfer Funds (Call Procedure)
-    const query = 'CALL fund_transfer($1, $2, $3, $4, $5, $6)';
-    const values = [senderId, receiverId, amount, senderCatId, receiverCatId, userId];
-    await db.query(query, values);
-    return { message: 'Transfer successful' };
+const transferFunds = async (
+  senderId,
+  receiverId,
+  amount,
+  senderCatId,
+  receiverCatId,
+  userId,
+) => {
+  // Query: Transfer Funds (Call Procedure)
+  const query = "CALL fund_transfer($1, $2, $3, $4, $5, $6)";
+  const values = [
+    senderId,
+    receiverId,
+    amount,
+    senderCatId,
+    receiverCatId,
+    userId,
+  ];
+  await db.query(query, values);
+  return { message: "Transfer successful" };
 };
 
 const getTransactionsByUserId = async (userId) => {
@@ -31,8 +53,26 @@ const getTransactionsByUserId = async (userId) => {
   return result.rows;
 };
 
+const getMonthlySummary = async (userId, month) => {
+  // Query: Get Monthly Summary from View
+  const query = `
+    SELECT * 
+    FROM user_monthly_transaction_summary 
+    WHERE user_id = $1 AND transaction_month = $2
+  `;
+  const result = await db.query(query, [userId, month]);
+  return (
+    result.rows[0] || {
+      total_income: 0,
+      total_expense: 0,
+      total_transactions: 0,
+    }
+  );
+};
+
 module.exports = {
   createTransaction,
   transferFunds,
   getTransactionsByUserId,
+  getMonthlySummary,
 };
