@@ -78,8 +78,10 @@ RETURNS TRIGGER AS $$
 DECLARE
     cur_bal DECIMAL;
     expense_id INT;
-    v_budget_limit DECIMAL;
+    v_budget_record RECORD;
     v_spent_so_far DECIMAL;
+    v_loan_repayment_cat_id INT;
+    v_transfer_cat_id INT;
 BEGIN
     IF NEW.amount <= 0 THEN
         RAISE EXCEPTION 'Transaction amount must be positive';
@@ -88,33 +90,41 @@ BEGIN
     SELECT transaction_type_id INTO expense_id FROM transaction_types WHERE type_name = 'expense';
 
     IF NEW.transaction_type_id = expense_id THEN
-        -- Check Account Balance
         SELECT current_balance INTO cur_bal FROM accounts WHERE account_id = NEW.account_id;
         IF cur_bal < NEW.amount THEN
              RAISE EXCEPTION 'Insufficient funds';
         END IF;
 
-        -- Check Budget
-        -- Get total monthly budget (category_id is NULL for total budget)
-        SELECT amount_limit INTO v_budget_limit 
-        FROM budgets 
-        WHERE user_id = NEW.user_id 
-          AND category_id IS NULL 
-          AND NEW.transaction_date BETWEEN start_date AND end_date;
+        SELECT category_id INTO v_loan_repayment_cat_id FROM categories WHERE category_name = 'Loan Repayment' AND (user_id = NEW.user_id OR user_id IS NULL) ORDER BY user_id DESC NULLS LAST LIMIT 1;
+        SELECT category_id INTO v_transfer_cat_id FROM categories WHERE category_name = 'Transfer' AND (user_id = NEW.user_id OR user_id IS NULL) ORDER BY user_id DESC NULLS LAST LIMIT 1;
 
-        IF v_budget_limit IS NOT NULL THEN
-            -- Calculate spent in current budget period
+        FOR v_budget_record IN 
+            SELECT amount_limit, start_date, end_date, category_id
+            FROM budgets 
+            WHERE user_id = NEW.user_id 
+              AND (category_id = NEW.category_id OR category_id IS NULL)
+              AND NEW.transaction_date BETWEEN start_date AND end_date
+            ORDER BY category_id ASC NULLS LAST
+        LOOP
+            IF v_budget_record.category_id IS NULL AND (NEW.category_id = v_loan_repayment_cat_id OR NEW.category_id = v_transfer_cat_id) THEN
+                CONTINUE;
+            END IF;
+
             SELECT COALESCE(SUM(amount), 0) INTO v_spent_so_far
             FROM transactions
             WHERE user_id = NEW.user_id
+              AND (category_id = v_budget_record.category_id OR (v_budget_record.category_id IS NULL AND category_id NOT IN (v_loan_repayment_cat_id, v_transfer_cat_id)))
               AND transaction_type_id = expense_id
-              AND transaction_date BETWEEN (SELECT start_date FROM budgets WHERE user_id = NEW.user_id AND category_id IS NULL AND NEW.transaction_date BETWEEN start_date AND end_date)
-                                      AND (SELECT end_date FROM budgets WHERE user_id = NEW.user_id AND category_id IS NULL AND NEW.transaction_date BETWEEN start_date AND end_date);
+              AND transaction_date BETWEEN v_budget_record.start_date AND v_budget_record.end_date;
 
-            IF (v_spent_so_far + NEW.amount) > v_budget_limit THEN
-                RAISE EXCEPTION 'Transaction exceeds budget limit (Tk. %)', v_budget_limit;
+            IF (v_spent_so_far + NEW.amount) > v_budget_record.amount_limit THEN
+                IF v_budget_record.category_id IS NULL THEN
+                    RAISE EXCEPTION 'Transaction exceeds total budget limit (%)', v_budget_record.amount_limit;
+                ELSE
+                    RAISE EXCEPTION 'Transaction exceeds category budget limit (%)', v_budget_record.amount_limit;
+                END IF;
             END IF;
-        END IF;
+        END LOOP;
     END IF;
     
     RETURN NEW;
@@ -221,7 +231,6 @@ BEGIN
     SET paid_amount = COALESCE(paid_amount, 0) + p_amount 
     WHERE loan_id = p_loan_id;
 
-    -- Automatically close loan if paid off
     UPDATE loans
     SET status = 'closed'
     WHERE loan_id = p_loan_id AND paid_amount >= total_repayment_amount;
@@ -250,19 +259,15 @@ BEGIN
 
     SELECT transaction_type_id INTO expense_id FROM transaction_types WHERE type_name = 'expense';
     
-    -- Get expense type ID
     SELECT transaction_type_id INTO expense_id FROM transaction_types WHERE type_name = 'expense';
 
-    -- Create Transaction
     INSERT INTO transactions (user_id, account_id, category_id, amount, transaction_type_id, description)
     VALUES (p_user_id, p_account_id, NULL, p_amount, expense_id, 'Goal Contribution: ' || v_goal_name);
 
-    -- Update Goal Current Amount
     UPDATE financial_goals 
     SET current_amount = COALESCE(current_amount, 0) + p_amount 
     WHERE financial_goal_id = p_goal_id;
 
-    -- Create Notification
     INSERT INTO notifications (user_id, title, message, is_read)
     VALUES (p_user_id, 'Goal Contribution', 'You added Tk. ' || p_amount || ' to goal: ' || v_goal_name, FALSE);
 
@@ -280,47 +285,37 @@ DECLARE
     v_interest_amount DECIMAL;
     v_interval INTERVAL;
 BEGIN
-    -- Loop through all active loans
     FOR v_loan_record IN 
         SELECT loan_id, principal_amount, interest_rate, interest_type, total_repayment_amount, paid_amount, due_date, return_frequency
         FROM loans WHERE status = 'active' AND due_date <= CURRENT_DATE
     LOOP
-        -- Determine the interval for advancing due date
         CASE UPPER(v_loan_record.return_frequency)
             WHEN 'QUARTERLY' THEN v_interval := '3 months'::INTERVAL;
             WHEN 'HALF-YEARLY' THEN v_interval := '6 months'::INTERVAL;
             WHEN 'YEARLY' THEN v_interval := '1 year'::INTERVAL;
-            ELSE v_interval := '1 month'::INTERVAL; -- Default to Monthly
+            ELSE v_interval := '1 month'::INTERVAL;
         END CASE;
 
-        -- Catch up if multiple periods have passed
         WHILE v_loan_record.due_date <= CURRENT_DATE LOOP
-            -- Normalize interest type to lowercase
             IF LOWER(v_loan_record.interest_type) = 'simple' THEN
-                -- Interest on Principal only (standard APR / 12 for monthly accrual)
                 v_interest_amount := (v_loan_record.principal_amount * v_loan_record.interest_rate / 100) / 12;
             ELSIF LOWER(v_loan_record.interest_type) = 'compound' THEN
-                -- Interest on the CURRENT total (Principal + existing Interest)
                 v_interest_amount := (COALESCE(v_loan_record.total_repayment_amount, v_loan_record.principal_amount) * v_loan_record.interest_rate / 100) / 12;
             ELSIF LOWER(v_loan_record.interest_type) = 'emi' THEN
-                -- Interest on Reducing Balance
                 v_interest_amount := ((v_loan_record.principal_amount - COALESCE(v_loan_record.paid_amount, 0)) * v_loan_record.interest_rate / 100) / 12;
             ELSE
                 v_interest_amount := 0;
             END IF;
 
-            -- Update the loan record state in the DB
             UPDATE loans 
             SET 
                 total_repayment_amount = COALESCE(total_repayment_amount, principal_amount) + v_interest_amount,
                 due_date = due_date + v_interval
             WHERE loan_id = v_loan_record.loan_id;
 
-            -- Log the accrual
             INSERT INTO audit_logs (user_id, action_type, details)
             VALUES (NULL, 'UPDATE', 'Interest auto-accrued for Loan ID: ' || v_loan_record.loan_id || '. Amount: ' || v_interest_amount || '. New Due Date: ' || (v_loan_record.due_date + v_interval));
 
-            -- Update local loop variables to continue catch-up if needed
             v_loan_record.total_repayment_amount := COALESCE(v_loan_record.total_repayment_amount, v_loan_record.principal_amount) + v_interest_amount;
             v_loan_record.due_date := v_loan_record.due_date + v_interval;
         END LOOP;
@@ -334,7 +329,6 @@ RETURNS DECIMAL AS $$
 DECLARE
     v_total DECIMAL := 0;
     v_current_amount DECIMAL;
-    -- Cursor to find all categories in this branch
     cat_cursor CURSOR FOR 
         WITH RECURSIVE category_tree AS (
             SELECT category_id FROM categories WHERE category_id = p_category_id
@@ -350,7 +344,6 @@ BEGIN
         FETCH cat_cursor INTO v_cat_id;
         EXIT WHEN NOT FOUND;
         
-        -- Get sum for this specific category
         SELECT COALESCE(SUM(amount), 0) INTO v_current_amount
         FROM transactions 
         WHERE user_id = p_user_id AND category_id = v_cat_id;

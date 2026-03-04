@@ -161,7 +161,7 @@ const Planning: FC = () => {
         amount: parseFloat(contributionForm.amount),
       });
       alert("Contribution successful!");
-      fetchData(); // Refresh data to see updated balance and goal amount
+      fetchData();
       setSelectedGoal(null);
       setContributionForm({ accountId: "", amount: "" });
     } catch (err: any) {
@@ -371,41 +371,6 @@ const Planning: FC = () => {
                       }
                       required
                     />
-                    {goalForm.targetAmount && goalForm.deadline && (
-                      <div className="mt-2 p-3 rounded-lg bg-emerald-50 dark:bg-emerald-900/20 border border-emerald-100 dark:border-emerald-800/30">
-                        <div className="flex justify-between items-center">
-                          <span className="text-xs font-black uppercase tracking-widest text-gray-400">
-                            Monthly Target
-                          </span>
-                          <span className="text-lg font-black text-emerald-600 dark:text-emerald-400">
-                            Tk.{" "}
-                            {Math.round(
-                              parseFloat(goalForm.targetAmount) /
-                                Math.max(
-                                  1,
-                                  (new Date(goalForm.deadline).getFullYear() -
-                                    new Date().getFullYear()) *
-                                    12 +
-                                    (new Date(goalForm.deadline).getMonth() -
-                                      new Date().getMonth()),
-                                ),
-                            ).toLocaleString()}
-                          </span>
-                        </div>
-                        <p className="text-[13px] text-gray-400 mt-1 italic text-right">
-                          *Estimated based on{" "}
-                          {Math.max(
-                            1,
-                            (new Date(goalForm.deadline).getFullYear() -
-                              new Date().getFullYear()) *
-                              12 +
-                              (new Date(goalForm.deadline).getMonth() -
-                                new Date().getMonth()),
-                          )}{" "}
-                          months
-                        </p>
-                      </div>
-                    )}
                   </div>
                   <button
                     type="submit"
@@ -605,11 +570,6 @@ const Planning: FC = () => {
                     required
                     min="1"
                   />
-                  {contributionForm.amount && (
-                    <p className="text-xs font-bold text-emerald-600 dark:text-emerald-400 mt-1 text-right">
-                      Tk. {Number(contributionForm.amount).toLocaleString()}
-                    </p>
-                  )}
                 </div>
                 <button
                   type="submit"

@@ -7,7 +7,6 @@ const createBudget = async (
   endDate,
   amountLimit,
 ) => {
-  // Reset logic: Delete existing budget for the same scope (Total Budget if categoryId is null)
   if (!categoryId) {
     // Query: Delete Existing Budget (Global)
     await db.query(

@@ -14,7 +14,6 @@ const createTransaction = async (req, res) => {
   const userId = req.user.id;
 
   try {
-    // Check if it's a transfer (ID 3 or string 'transfer' for backward compatibility during migration)
     if (typeId === 3 || type === "transfer") {
       if (!toAccountId) {
         return res

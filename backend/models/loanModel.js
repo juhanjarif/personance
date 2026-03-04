@@ -45,7 +45,6 @@ const createLoan = async (userId, loanData) => {
 };
 
 const getLoansByUserId = async (userId) => {
-  // Auto-accrue interest based on date before returning results
   await accrueInterest();
 
   // Query: Get Loans by User ID
