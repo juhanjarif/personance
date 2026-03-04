@@ -36,8 +36,21 @@ const getAllTransactions = async (req, res) => {
   }
 };
 
+const getAuditLogs = async (req, res) => {
+  try {
+    const result = await db.query(
+      "SELECT a.*, u.name as user_name, u.email as user_email FROM audit_logs a LEFT JOIN users u ON a.user_id = u.user_id ORDER BY a.created_at DESC",
+    );
+    res.json(result.rows);
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: "Server error fetching audit logs" });
+  }
+};
+
 module.exports = {
   getDailyTallies,
   getMonthlyTallies,
   getAllTransactions,
+  getAuditLogs,
 };

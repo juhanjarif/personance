@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from "react";
 import api from "../api";
+import { checkBudget } from "../utils/budgetCheck";
 
 interface Loan {
   loan_id: number;
@@ -233,11 +234,17 @@ const Loans = () => {
     e.preventDefault();
     if (!selectedLoan || !selectedAccountId || !paymentAmount) return;
 
+    const amount = parseFloat(paymentAmount);
+
+    // Check global budget first since repayment is an outgoing expense
+    const proceed = await checkBudget(amount);
+    if (!proceed) return;
+
     try {
       await api.post("/loans/repay", {
         loanId: selectedLoan.loan_id,
         accountId: selectedAccountId,
-        amount: parseFloat(paymentAmount),
+        amount,
       });
       alert("Repayment successful!");
       fetchLoans();

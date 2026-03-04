@@ -6,6 +6,7 @@ interface Category {
   category_id: number;
   category_name: string;
   parent_category_id: number | null;
+  is_income_category: boolean;
 }
 
 interface MonthlySummaryData {
@@ -70,7 +71,7 @@ const Analytics: FC = () => {
     );
 
   const sortedCategories = categories
-    .filter((c) => !c.parent_category_id)
+    .filter((c) => !c.parent_category_id && !c.is_income_category)
     .sort((a, b) => {
       const totalA = categoryTotals[a.category_id] || 0;
       const totalB = categoryTotals[b.category_id] || 0;

@@ -17,6 +17,7 @@ import Loans from "./pages/Loans";
 import AdminDashboard from "./pages/AdminDashboard";
 import AdminLogin from "./pages/AdminLogin";
 import Analytics from "./pages/Analytics";
+import ScheduledPayments from "./pages/ScheduledPayments";
 
 interface PrivateRouteProps {
   children: ReactNode;
@@ -124,6 +125,10 @@ const Layout: FC<LayoutProps> = ({ children }) => {
                 Analytics
                 <span className={indicatorClass("/analytics")}></span>
               </Link>
+              <Link to="/scheduled" className={linkClass("/scheduled")}>
+                Scheduled
+                <span className={indicatorClass("/scheduled")}></span>
+              </Link>
             </div>
 
             <div className="flex items-center space-x-2 sm:space-x-4">
@@ -185,6 +190,12 @@ const Layout: FC<LayoutProps> = ({ children }) => {
             className="text-[10px] font-black uppercase text-gray-500 dark:text-gray-400 hover:text-blue-600"
           >
             Analytics
+          </Link>
+          <Link
+            to="/scheduled"
+            className="text-[10px] font-black uppercase text-gray-500 dark:text-gray-400 hover:text-blue-600"
+          >
+            Scheduled
           </Link>
         </div>
       </nav>
@@ -257,6 +268,16 @@ function App() {
               <PrivateRoute>
                 <Layout>
                   <Analytics />
+                </Layout>
+              </PrivateRoute>
+            }
+          />
+          <Route
+            path="/scheduled"
+            element={
+              <PrivateRoute>
+                <Layout>
+                  <ScheduledPayments />
                 </Layout>
               </PrivateRoute>
             }

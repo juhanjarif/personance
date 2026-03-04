@@ -62,3 +62,6 @@ CREATE INDEX idx_categories_parent ON categories(parent_category_id);
 
 -- Speed up Dashboard goal tracking
 CREATE INDEX idx_financial_goals_user ON financial_goals(user_id);
+
+CREATE INDEX idx_scheduled_payments_user ON scheduled_payments(user_id);
+CREATE INDEX idx_scheduled_payments_due_date ON scheduled_payments(next_due_date);

@@ -140,3 +140,17 @@ CREATE TABLE IF NOT EXISTS loans (
     due_date DATE,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
+
+CREATE TABLE IF NOT EXISTS scheduled_payments (
+    scheduled_payment_id SERIAL PRIMARY KEY,
+    user_id INT REFERENCES users(user_id) ON DELETE CASCADE,
+    category_id INT REFERENCES categories(category_id) ON DELETE SET NULL,
+    account_id INT REFERENCES accounts(account_id) ON DELETE CASCADE,
+    to_account_id INT REFERENCES accounts(account_id) ON DELETE CASCADE,
+    transaction_type_id INT REFERENCES transaction_types(transaction_type_id) ON DELETE CASCADE,
+    amount DECIMAL(15, 2) NOT NULL,
+    frequency VARCHAR(50) NOT NULL,
+    next_due_date DATE NOT NULL,
+    status VARCHAR(20) DEFAULT 'active',
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);

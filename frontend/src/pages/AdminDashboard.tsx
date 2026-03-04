@@ -2,13 +2,6 @@ import { useState, useEffect } from "react";
 import api from "../api";
 import { useNavigate } from "react-router-dom";
 
-interface DailyTally {
-  transaction_date: string;
-  total_transactions: string;
-  total_income: string;
-  total_expense: string;
-}
-
 interface MonthlyTally {
   transaction_month: string;
   total_transactions: string;
@@ -29,13 +22,23 @@ interface GlobalTransaction {
   created_at: string;
 }
 
+interface AuditLog {
+  audit_log_id: number;
+  user_name: string | null;
+  user_email: string | null;
+  action_type: string;
+  details: string;
+  created_at: string;
+}
+
 const AdminDashboard = () => {
   const [monthlyTallies, setMonthlyTallies] = useState<MonthlyTally[]>([]);
   const [allTransactions, setAllTransactions] = useState<GlobalTransaction[]>(
     [],
   );
+  const [auditLogs, setAuditLogs] = useState<AuditLog[]>([]);
   const [loading, setLoading] = useState(true);
-  const [activeTab, setActiveTab] = useState<"overview" | "activity">(
+  const [activeTab, setActiveTab] = useState<"overview" | "activity" | "audit">(
     "overview",
   );
   const navigate = useNavigate();
@@ -52,12 +55,14 @@ const AdminDashboard = () => {
   useEffect(() => {
     const fetchAdminData = async () => {
       try {
-        const [monthlyRes, txRes] = await Promise.all([
+        const [monthlyRes, txRes, auditRes] = await Promise.all([
           api.get<MonthlyTally[]>("/admin/tallies/monthly"),
           api.get<GlobalTransaction[]>("/admin/transactions"),
+          api.get<AuditLog[]>("/admin/audit-logs"),
         ]);
         setMonthlyTallies(monthlyRes.data);
         setAllTransactions(txRes.data);
+        setAuditLogs(auditRes.data);
       } catch (err) {
         console.error("Error fetching admin data:", err);
       } finally {
@@ -103,6 +108,12 @@ const AdminDashboard = () => {
                   className={`px-4 py-1.5 rounded-lg text-xs font-black uppercase transition-all ${activeTab === "activity" ? "bg-white dark:bg-gray-800 text-blue-600 shadow-sm" : "text-gray-400 hover:text-gray-600 dark:hover:text-gray-200"}`}
                 >
                   Activity
+                </button>
+                <button
+                  onClick={() => setActiveTab("audit")}
+                  className={`px-4 py-1.5 rounded-lg text-xs font-black uppercase transition-all ${activeTab === "audit" ? "bg-white dark:bg-gray-800 text-blue-600 shadow-sm" : "text-gray-400 hover:text-gray-600 dark:hover:text-gray-200"}`}
+                >
+                  Audit Logs
                 </button>
               </div>
             </div>
@@ -240,7 +251,7 @@ const AdminDashboard = () => {
               </div>
             </div>
           </div>
-        ) : (
+        ) : activeTab === "activity" ? (
           <div className="space-y-6 fade-in">
             <header className="flex justify-between items-end">
               <div>
@@ -332,7 +343,88 @@ const AdminDashboard = () => {
               </div>
             </div>
           </div>
-        )}
+        ) : activeTab === "audit" ? (
+          <div className="space-y-6 fade-in">
+            <header className="flex justify-between items-end">
+              <div>
+                <h1 className="text-3xl font-black text-gray-900 dark:text-white tracking-tight">
+                  System Audit Logs
+                </h1>
+                <p className="text-gray-400 text-sm font-medium mt-1 uppercase tracking-widest">
+                  Track Important System Actions
+                </p>
+              </div>
+              <div className="text-[10px] font-black text-gray-300 uppercase">
+                Showing Last {auditLogs.length} items
+              </div>
+            </header>
+
+            <div className="bg-white dark:bg-gray-800 rounded-[2rem] border border-gray-100 dark:border-gray-700 shadow-sm overflow-hidden">
+              <div className="overflow-x-auto">
+                <table className="w-full">
+                  <thead>
+                    <tr className="bg-gray-50/50 dark:bg-gray-900/50 border-b border-gray-100 dark:border-gray-700">
+                      <th className="px-6 py-4 text-left text-[10px] font-black uppercase text-gray-400 tracking-widest">
+                        Timestamp
+                      </th>
+                      <th className="px-6 py-4 text-left text-[10px] font-black uppercase text-gray-400 tracking-widest">
+                        User
+                      </th>
+                      <th className="px-6 py-4 text-left text-[10px] font-black uppercase text-gray-400 tracking-widest">
+                        Action Type
+                      </th>
+                      <th className="px-6 py-4 text-left text-[10px] font-black uppercase text-gray-400 tracking-widest">
+                        Details
+                      </th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-gray-50 dark:divide-gray-900/50">
+                    {auditLogs.map((log) => (
+                      <tr
+                        key={log.audit_log_id}
+                        className="hover:bg-gray-50/50 dark:hover:bg-gray-900/30 transition-colors"
+                      >
+                        <td className="px-6 py-4">
+                          <p className="text-xs font-semibold text-gray-500">
+                            {new Date(log.created_at).toLocaleString("en-GB")}
+                          </p>
+                        </td>
+                        <td className="px-6 py-4">
+                          <p className="text-sm font-bold text-gray-900 dark:text-white">
+                            {log.user_name || "System"}
+                          </p>
+                          {log.user_email && (
+                            <p className="text-[10px] text-gray-400 lowercase">
+                              {log.user_email}
+                            </p>
+                          )}
+                        </td>
+                        <td className="px-6 py-4">
+                          <span
+                            className={`px-2 py-1 rounded-lg text-[10px] font-black uppercase tracking-widest ${
+                              log.action_type === "INSERT"
+                                ? "bg-emerald-50 text-emerald-600 dark:bg-emerald-900/20 dark:text-emerald-400"
+                                : log.action_type === "DELETE"
+                                  ? "bg-red-50 text-red-600 dark:bg-red-900/20 dark:text-red-400"
+                                  : "bg-blue-50 text-blue-600 dark:bg-blue-900/20 dark:text-blue-400"
+                            }`}
+                          >
+                            {log.action_type}
+                          </span>
+                        </td>
+                        <td className="px-6 py-4">
+                          <p className="text-xs font-medium text-gray-700 dark:text-gray-300">
+                            {log.details}
+                          </p>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+        ) : null}
       </main>
     </div>
   );

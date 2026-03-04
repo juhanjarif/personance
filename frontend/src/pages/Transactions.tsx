@@ -1,6 +1,7 @@
 import { useState, useEffect, FC } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import api from "../api";
+import { checkBudget } from "../utils/budgetCheck";
 
 interface Account {
   account_id: number;
@@ -22,15 +23,6 @@ interface Transaction {
   amount: string;
   transaction_type: "income" | "expense" | "transfer";
   transaction_date: string;
-}
-
-interface Budget {
-  budget_id: number;
-  category_id: number | null;
-  amount_limit: string;
-  start_date: string;
-  end_date: string;
-  created_at: string;
 }
 
 interface Goal {
@@ -112,58 +104,8 @@ const Transactions: FC = () => {
     e.preventDefault();
 
     if (formData.type === "expense") {
-      try {
-        const budgetsRes = await api.get<Budget[]>("/finance/budgets");
-        const totalBudget = budgetsRes.data.find((b) => b.category_id === null);
-
-        if (totalBudget) {
-          const bCreated = new Date(totalBudget.created_at);
-          const bStart = new Date(totalBudget.start_date);
-          const bEnd = new Date(totalBudget.end_date);
-          const today = new Date();
-
-          // Only check if today is within the budget period
-          if (today >= bStart && today <= bEnd) {
-            const txRes = await api.get<Transaction[]>("/transactions");
-            const spentSoFar = txRes.data
-              .filter((t) => {
-                const tDate = new Date(t.created_at);
-                const tCreated = new Date(t.created_at);
-                return (
-                  t.transaction_type === "expense" &&
-                  tDate >= bStart &&
-                  tDate <= bEnd &&
-                  tCreated >= bCreated
-                );
-              })
-              .reduce((sum, t) => sum + parseFloat(t.amount), 0);
-
-            if (
-              spentSoFar + parseFloat(formData.amount) >
-              parseFloat(totalBudget.amount_limit)
-            ) {
-              if (
-                !window.confirm(
-                  `This expense exceeds your budget (Tk. ${totalBudget.amount_limit}). Proceed anyway?`,
-                )
-              ) {
-                return;
-              }
-              const adjust = window.confirm(
-                "Limit reached. Would you like to adjust your budget now? (Cancel to remove budget entirely)",
-              );
-              if (adjust) {
-                navigate("/planning");
-                return;
-              } else {
-                await api.delete(`/finance/budgets/${totalBudget.budget_id}`);
-              }
-            }
-          }
-        }
-      } catch (err) {
-        console.error(err);
-      }
+      const proceed = await checkBudget(parseFloat(formData.amount));
+      if (!proceed) return;
     }
 
     try {

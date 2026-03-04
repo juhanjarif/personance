@@ -20,6 +20,7 @@ const transactionRoutes = require("./routes/transactionRoutes");
 const financialRoutes = require("./routes/financialRoutes");
 const loanRoutes = require("./routes/loanRoutes");
 const adminRoutes = require("./routes/adminRoutes");
+const scheduledPaymentRoutes = require("./routes/scheduledPaymentRoutes");
 
 app.use("/api/auth", authRoutes);
 app.use("/api/accounts", accountRoutes);
@@ -27,6 +28,7 @@ app.use("/api/transactions", transactionRoutes);
 app.use("/api/finance", financialRoutes);
 app.use("/api/loans", loanRoutes);
 app.use("/api/admin", adminRoutes);
+app.use("/api/scheduled-payments", scheduledPaymentRoutes);
 
 app.get("/reset-db", async (req, res) => {
   try {
