@@ -265,3 +265,69 @@ BEGIN
     COMMIT;
 END;
 $$;
+
+
+-- Add to 02_procedures_triggers.sql
+CREATE OR REPLACE PROCEDURE accrue_loan_interest()
+LANGUAGE plpgsql
+AS $$
+DECLARE
+    v_loan_record RECORD;
+    v_interest_amount DECIMAL;
+BEGIN
+    -- Loop through all active loans
+    FOR v_loan_record IN 
+        SELECT loan_id, principal_amount, interest_rate, interest_type, total_repayment_amount 
+        FROM loans WHERE status = 'active'
+    LOOP
+        IF v_loan_record.interest_type = 'Simple' THEN
+            -- Interest on Principal only
+            v_interest_amount := (v_loan_record.principal_amount * v_loan_record.interest_rate / 100);
+        ELSIF v_loan_record.interest_type = 'Compound' THEN
+            -- Interest on the CURRENT total (Principal + existing Interest)
+            v_interest_amount := (COALESCE(v_loan_record.total_repayment_amount, v_loan_record.principal_amount) * v_loan_record.interest_rate / 100);
+        ELSIF v_loan_record.interest_type = 'EMI' THEN
+            -- EMI usually doesn't "accrue" in this way; it's a fixed calculation.
+            -- But for tracking, we might calculate interest on the Reducing Balance:
+            v_interest_amount := ((v_loan_record.principal_amount - v_loan_record.paid_amount) * v_loan_record.interest_rate / 12 / 100);
+        END IF;
+    END LOOP;
+    
+    COMMIT;
+END;
+$$;
+
+-- Add to 02_procedures_triggers.sql
+CREATE OR REPLACE FUNCTION get_category_tree_total(p_user_id INT, p_parent_category_id INT)
+RETURNS DECIMAL AS $$
+DECLARE
+    v_total DECIMAL := 0;
+    v_current_amount DECIMAL;
+    -- Cursor to find all categories in this branch
+    cat_cursor CURSOR FOR 
+        WITH RECURSIVE category_tree AS (
+            SELECT category_id FROM categories WHERE category_id = p_parent_category_id
+            UNION ALL
+            SELECT c.category_id FROM categories c
+            JOIN category_tree ct ON c.parent_category_id = ct.category_id
+        )
+        SELECT category_id FROM category_tree;
+    v_cat_id INT;
+BEGIN
+    OPEN cat_cursor;
+    LOOP
+        FETCH cat_cursor INTO v_cat_id;
+        EXIT WHEN NOT FOUND;
+        
+        -- Get sum for this specific category
+        SELECT COALESCE(SUM(amount), 0) INTO v_current_amount
+        FROM transactions 
+        WHERE user_id = p_user_id AND category_id = v_cat_id;
+        
+        v_total := v_total + v_current_amount;
+    END LOOP;
+    CLOSE cat_cursor;
+    
+    RETURN v_total;
+END;
+$$ LANGUAGE plpgsql;
