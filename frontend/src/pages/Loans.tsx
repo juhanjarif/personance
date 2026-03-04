@@ -399,21 +399,6 @@ const Loans = () => {
                 </div>
               </div>
 
-              <div className="p-4 rounded-xl bg-blue-50 dark:bg-blue-900/10 border border-blue-100 dark:border-blue-900/30">
-                <div className="flex justify-between items-center">
-                  <span className="text-xs font-bold text-blue-800 dark:text-blue-200 uppercase">
-                    Interest Accrual Starts
-                  </span>
-                  <span className="text-sm font-black text-blue-600 dark:text-blue-400">
-                    {(() => {
-                      const d = new Date();
-                      d.setMonth(d.getMonth() + (form.gracePeriodMonths || 0));
-                      return d.toLocaleDateString();
-                    })()}
-                  </span>
-                </div>
-              </div>
-
               <div className="p-4 rounded-xl bg-amber-50 dark:bg-amber-900/10 border border-amber-100 dark:border-amber-900/30">
                 <div className="flex justify-between items-center mb-1">
                   <span className="text-xs font-bold text-amber-800 dark:text-amber-200 uppercase">

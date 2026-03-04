@@ -54,8 +54,7 @@ CREATE TABLE IF NOT EXISTS categories (
 -- Seed Default Global Categories
 INSERT INTO categories (category_name, is_income_category, user_id) VALUES 
 ('Salary', TRUE, NULL),
-('Freelance', TRUE, NULL),
-('Investment', TRUE, NULL),
+('Allowance', TRUE, NULL),
 ('Food & Dining', FALSE, NULL),
 ('Shopping', FALSE, NULL),
 ('Transportation', FALSE, NULL),
@@ -63,7 +62,8 @@ INSERT INTO categories (category_name, is_income_category, user_id) VALUES
 ('Entertainment', FALSE, NULL),
 ('Healthcare', FALSE, NULL),
 ('Education', FALSE, NULL),
-('Transfer', FALSE, NULL)
+('Transfer', FALSE, NULL),
+('Loan Repayment', FALSE, NULL)
 ON CONFLICT DO NOTHING;
 
 CREATE TABLE IF NOT EXISTS transaction_types (

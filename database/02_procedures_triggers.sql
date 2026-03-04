@@ -205,8 +205,12 @@ BEGIN
     SELECT purpose INTO v_loan_purpose FROM loans WHERE loan_id = p_loan_id;
     
     SELECT account_name INTO v_account_name FROM accounts WHERE account_id = p_account_id;
-
-    SELECT category_id INTO v_category_id FROM categories WHERE user_id = p_user_id LIMIT 1;
+    
+    SELECT category_id INTO v_category_id 
+    FROM categories 
+    WHERE category_name = 'Loan Repayment' AND (user_id = p_user_id OR user_id IS NULL)
+    ORDER BY user_id DESC NULLS LAST
+    LIMIT 1;
 
     SELECT transaction_type_id INTO expense_id FROM transaction_types WHERE type_name = 'expense';
 
