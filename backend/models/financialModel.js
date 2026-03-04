@@ -1,17 +1,30 @@
-const db = require('../db');
+const db = require("../db");
 
-const createBudget = async (userId, categoryId, startDate, endDate, amountLimit) => {
+const createBudget = async (
+  userId,
+  categoryId,
+  startDate,
+  endDate,
+  amountLimit,
+) => {
   // Reset logic: Delete existing budget for the same scope (Total Budget if categoryId is null)
   if (!categoryId) {
     // Query: Delete Existing Budget (Global)
-    await db.query('DELETE FROM budgets WHERE user_id = $1 AND category_id IS NULL', [userId]);
+    await db.query(
+      "DELETE FROM budgets WHERE user_id = $1 AND category_id IS NULL",
+      [userId],
+    );
   } else {
     // Query: Delete Existing Budget (Category Specific)
-    await db.query('DELETE FROM budgets WHERE user_id = $1 AND category_id = $2', [userId, categoryId]);
+    await db.query(
+      "DELETE FROM budgets WHERE user_id = $1 AND category_id = $2",
+      [userId, categoryId],
+    );
   }
 
   // Query: Create Budget
-  const query = 'INSERT INTO budgets (user_id, category_id, start_date, end_date, amount_limit) VALUES ($1, $2, $3, $4, $5) RETURNING *';
+  const query =
+    "INSERT INTO budgets (user_id, category_id, start_date, end_date, amount_limit) VALUES ($1, $2, $3, $4, $5) RETURNING *";
   const values = [userId, categoryId || null, startDate, endDate, amountLimit];
   const result = await db.query(query, values);
   return result.rows[0];
@@ -31,7 +44,8 @@ const getBudgets = async (userId) => {
 
 const createGoal = async (userId, goalName, targetAmount, deadline) => {
   // Query: Create Goal
-  const query = 'INSERT INTO financial_goals (user_id, goal_name, target_amount, deadline) VALUES ($1, $2, $3, $4) RETURNING *';
+  const query =
+    "INSERT INTO financial_goals (user_id, goal_name, target_amount, deadline) VALUES ($1, $2, $3, $4) RETURNING *";
   const values = [userId, goalName, targetAmount, deadline];
   const result = await db.query(query, values);
   return result.rows[0];
@@ -39,37 +53,47 @@ const createGoal = async (userId, goalName, targetAmount, deadline) => {
 
 const getGoals = async (userId) => {
   // Query: Get Goals
-  const query = 'SELECT * FROM financial_goals WHERE user_id = $1';
+  const query = "SELECT * FROM financial_goals WHERE user_id = $1";
   const result = await db.query(query, [userId]);
   return result.rows;
 };
 
 const deleteGoal = async (goalId, userId) => {
   // Query: Delete Goal
-  const query = 'DELETE FROM financial_goals WHERE financial_goal_id = $1 AND user_id = $2 RETURNING *';
+  const query =
+    "DELETE FROM financial_goals WHERE financial_goal_id = $1 AND user_id = $2 RETURNING *";
   const result = await db.query(query, [goalId, userId]);
   return result.rows[0];
 };
 
 const deleteBudget = async (budgetId, userId) => {
   // Query: Delete Budget
-  const query = 'DELETE FROM budgets WHERE budget_id = $1 AND user_id = $2 RETURNING *';
+  const query =
+    "DELETE FROM budgets WHERE budget_id = $1 AND user_id = $2 RETURNING *";
   const result = await db.query(query, [budgetId, userId]);
   return result.rows[0];
 };
 
 const getCategories = async (userId) => {
   // Query: Get Categories
-  const query = 'SELECT * FROM categories WHERE user_id = $1 OR user_id IS NULL';
+  const query =
+    "SELECT * FROM categories WHERE user_id = $1 OR user_id IS NULL";
   const result = await db.query(query, [userId]);
   return result.rows;
 };
 
 const addGoalMoney = async (userId, goalId, accountId, amount) => {
   // Query: Add Money to Goal (Call Procedure)
-  const query = 'CALL add_goal_money($1, $2, $3, $4)';
+  const query = "CALL add_goal_money($1, $2, $3, $4)";
   await db.query(query, [goalId, accountId, amount, userId]);
   return { success: true };
+};
+
+const getCategoryTreeTotal = async (userId, categoryId) => {
+  // Query: Get Category Tree Total (Call Function)
+  const query = "SELECT get_category_tree_total($1, $2) as total";
+  const result = await db.query(query, [userId, categoryId]);
+  return result.rows[0].total;
 };
 
 module.exports = {
@@ -80,5 +104,6 @@ module.exports = {
   getGoals,
   deleteGoal,
   getCategories,
-  addGoalMoney
+  addGoalMoney,
+  getCategoryTreeTotal,
 };

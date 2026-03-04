@@ -1,13 +1,19 @@
-const financialModel = require('../models/financialModel');
+const financialModel = require("../models/financialModel");
 
 const createBudget = async (req, res) => {
   const { categoryId, startDate, endDate, amountLimit } = req.body;
   const userId = req.user.id;
   try {
-    const budget = await financialModel.createBudget(userId, categoryId, startDate, endDate, amountLimit);
+    const budget = await financialModel.createBudget(
+      userId,
+      categoryId,
+      startDate,
+      endDate,
+      amountLimit,
+    );
     res.status(201).json(budget);
   } catch (error) {
-    res.status(500).json({ message: 'Server error' });
+    res.status(500).json({ message: "Server error" });
   }
 };
 
@@ -17,7 +23,7 @@ const getBudgets = async (req, res) => {
     const budgets = await financialModel.getBudgets(userId);
     res.json(budgets);
   } catch (error) {
-    res.status(500).json({ message: 'Server error' });
+    res.status(500).json({ message: "Server error" });
   }
 };
 
@@ -25,10 +31,10 @@ const deleteBudget = async (req, res) => {
   const userId = req.user.id;
   try {
     const budget = await financialModel.deleteBudget(req.params.id, userId);
-    if (!budget) return res.status(404).json({ message: 'Budget not found' });
+    if (!budget) return res.status(404).json({ message: "Budget not found" });
     res.json(budget);
   } catch (error) {
-    res.status(500).json({ message: 'Server error' });
+    res.status(500).json({ message: "Server error" });
   }
 };
 
@@ -36,10 +42,15 @@ const createGoal = async (req, res) => {
   const { goalName, targetAmount, deadline } = req.body;
   const userId = req.user.id;
   try {
-    const goal = await financialModel.createGoal(userId, goalName, targetAmount, deadline);
+    const goal = await financialModel.createGoal(
+      userId,
+      goalName,
+      targetAmount,
+      deadline,
+    );
     res.status(201).json(goal);
   } catch (error) {
-    res.status(500).json({ message: 'Server error' });
+    res.status(500).json({ message: "Server error" });
   }
 };
 
@@ -49,7 +60,7 @@ const getGoals = async (req, res) => {
     const goals = await financialModel.getGoals(userId);
     res.json(goals);
   } catch (error) {
-    res.status(500).json({ message: 'Server error' });
+    res.status(500).json({ message: "Server error" });
   }
 };
 
@@ -57,10 +68,10 @@ const deleteGoal = async (req, res) => {
   const userId = req.user.id;
   try {
     const goal = await financialModel.deleteGoal(req.params.id, userId);
-    if (!goal) return res.status(404).json({ message: 'Goal not found' });
+    if (!goal) return res.status(404).json({ message: "Goal not found" });
     res.json(goal);
   } catch (error) {
-    res.status(500).json({ message: 'Server error' });
+    res.status(500).json({ message: "Server error" });
   }
 };
 
@@ -70,7 +81,7 @@ const getCategories = async (req, res) => {
     const categories = await financialModel.getCategories(userId);
     res.json(categories);
   } catch (error) {
-    res.status(500).json({ message: 'Server error' });
+    res.status(500).json({ message: "Server error" });
   }
 };
 
@@ -78,14 +89,28 @@ const addGoalMoney = async (req, res) => {
   const { goalId, accountId, amount } = req.body;
   const userId = req.user.id;
   if (!goalId || !accountId || !amount) {
-    return res.status(400).json({ message: 'Missing required fields' });
+    return res.status(400).json({ message: "Missing required fields" });
   }
   try {
     await financialModel.addGoalMoney(userId, goalId, accountId, amount);
-    res.json({ message: 'Money added to goal successfully' });
+    res.json({ message: "Money added to goal successfully" });
   } catch (error) {
-    console.error('Error adding money to goal:', error);
-    res.status(500).json({ message: 'Server error adding money to goal' });
+    console.error("Error adding money to goal:", error);
+    res.status(500).json({ message: "Server error adding money to goal" });
+  }
+};
+
+const getCategoryTreeTotal = async (req, res) => {
+  const { id } = req.params;
+  const userId = req.user.id;
+  try {
+    const total = await financialModel.getCategoryTreeTotal(userId, id);
+    res.json({ total });
+  } catch (error) {
+    console.error("Error fetching category tree total:", error);
+    res
+      .status(500)
+      .json({ message: "Server error fetching category tree total" });
   }
 };
 
@@ -97,5 +122,6 @@ module.exports = {
   getGoals,
   deleteGoal,
   getCategories,
-  addGoalMoney
+  addGoalMoney,
+  getCategoryTreeTotal,
 };

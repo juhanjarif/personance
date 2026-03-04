@@ -1,21 +1,33 @@
-const express = require('express');
+const express = require("express");
 const router = express.Router();
-const financialController = require('../controllers/financialController');
-const authenticateToken = require('../middleware/authMiddleware');
+const financialController = require("../controllers/financialController");
+const authenticateToken = require("../middleware/authMiddleware");
 
 // Budgets
-router.post('/budgets', authenticateToken, financialController.createBudget);
-router.get('/budgets', authenticateToken, financialController.getBudgets);
-router.delete('/budgets/:id', authenticateToken, financialController.deleteBudget);
+router.post("/budgets", authenticateToken, financialController.createBudget);
+router.get("/budgets", authenticateToken, financialController.getBudgets);
+router.delete(
+  "/budgets/:id",
+  authenticateToken,
+  financialController.deleteBudget,
+);
 
 // Goals
-router.post('/goals', authenticateToken, financialController.createGoal);
-router.get('/goals', authenticateToken, financialController.getGoals);
-router.delete('/goals/:id', authenticateToken, financialController.deleteGoal);
+router.post("/goals", authenticateToken, financialController.createGoal);
+router.get("/goals", authenticateToken, financialController.getGoals);
+router.delete("/goals/:id", authenticateToken, financialController.deleteGoal);
 
 // Categories
-router.get('/categories', authenticateToken, financialController.getCategories);
-router.post('/goals/add-money', authenticateToken, financialController.addGoalMoney);
-
+router.get("/categories", authenticateToken, financialController.getCategories);
+router.get(
+  "/categories/:id/total",
+  authenticateToken,
+  financialController.getCategoryTreeTotal,
+);
+router.post(
+  "/goals/add-money",
+  authenticateToken,
+  financialController.addGoalMoney,
+);
 
 module.exports = router;
