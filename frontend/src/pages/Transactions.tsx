@@ -2,6 +2,7 @@ import { useState, useEffect, FC } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import api from "../api";
 import { checkBudget } from "../utils/budgetCheck";
+import ConfirmModal from "../components/ConfirmModal";
 
 interface Account {
   account_id: number;
@@ -46,6 +47,7 @@ const Transactions: FC = () => {
     description: "",
     toAccountId: "",
   });
+  const [isConfirmModalOpen, setIsConfirmModalOpen] = useState(false);
 
   const location = useLocation();
   const navigate = useNavigate();
@@ -108,6 +110,10 @@ const Transactions: FC = () => {
       if (!proceed) return;
     }
 
+    setIsConfirmModalOpen(true);
+  };
+
+  const handleConfirmSubmit = async () => {
     try {
       await api.post("/transactions", formData);
       setShowForm(false);
@@ -125,6 +131,8 @@ const Transactions: FC = () => {
     } catch (err: any) {
       console.error(err);
       alert(err.response?.data?.message || "Error creating transaction.");
+    } finally {
+      setIsConfirmModalOpen(false);
     }
   };
 
@@ -402,6 +410,71 @@ const Transactions: FC = () => {
           </table>
         </div>
       </div>
+
+      <ConfirmModal
+        isOpen={isConfirmModalOpen}
+        title="Confirm Transaction"
+        message={
+          <div className="space-y-3">
+            <p>
+              <span className="font-semibold text-gray-500 mr-2">Type:</span>
+              <span className="capitalize">{formData.type}</span>
+            </p>
+            <p>
+              <span className="font-semibold text-gray-500 mr-2">Amount:</span>
+              <span className="font-bold tabular-nums">
+                Tk. {formData.amount}
+              </span>
+            </p>
+            <p>
+              <span className="font-semibold text-gray-500 mr-2">Account:</span>
+              <span>
+                {
+                  accounts.find(
+                    (a) => a.account_id === parseInt(formData.accountId),
+                  )?.account_name
+                }
+              </span>
+            </p>
+            {formData.type === "transfer" && formData.toAccountId && (
+              <p>
+                <span className="font-semibold text-gray-500 mr-2">
+                  To Account:
+                </span>
+                <span>
+                  {
+                    accounts.find(
+                      (a) => a.account_id === parseInt(formData.toAccountId),
+                    )?.account_name
+                  }
+                </span>
+              </p>
+            )}
+            <p>
+              <span className="font-semibold text-gray-500 mr-2">
+                Category:
+              </span>
+              <span>
+                {categories.find(
+                  (c) => c.category_id === parseInt(formData.categoryId),
+                )?.category_name || "Uncategorized"}
+              </span>
+            </p>
+            {formData.description && (
+              <p>
+                <span className="font-semibold text-gray-500 mr-2">
+                  Description:
+                </span>
+                <span>{formData.description}</span>
+              </p>
+            )}
+          </div>
+        }
+        onConfirm={handleConfirmSubmit}
+        onCancel={() => setIsConfirmModalOpen(false)}
+        confirmText="Confirm Transaction"
+        cancelText="Cancel"
+      />
     </div>
   );
 };

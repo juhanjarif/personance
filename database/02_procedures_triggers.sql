@@ -276,7 +276,7 @@ END;
 $$;
 
 
--- Add to 02_procedures_triggers.sql
+-- Procedure: accrue_loan_interest
 CREATE OR REPLACE PROCEDURE accrue_loan_interest()
 LANGUAGE plpgsql
 AS $$
@@ -323,7 +323,7 @@ BEGIN
 END;
 $$;
 
--- Add to 02_procedures_triggers.sql
+-- Procedure: get_category_tree_total
 CREATE OR REPLACE FUNCTION get_category_tree_total(p_user_id INT, p_category_id INT)
 RETURNS DECIMAL AS $$
 DECLARE

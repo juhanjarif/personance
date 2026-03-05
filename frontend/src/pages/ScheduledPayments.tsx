@@ -1,6 +1,7 @@
 import { useState, useEffect, FC } from "react";
 import api from "../api";
 import { checkBudget } from "../utils/budgetCheck";
+import ConfirmModal from "../components/ConfirmModal";
 
 interface Category {
   category_id: number;
@@ -46,6 +47,7 @@ const ScheduledPayments: FC = () => {
     frequency: "monthly",
     next_due_date: new Date().toISOString().split("T")[0],
   });
+  const [isConfirmModalOpen, setIsConfirmModalOpen] = useState(false);
 
   useEffect(() => {
     fetchData();
@@ -80,6 +82,14 @@ const ScheduledPayments: FC = () => {
       const proceed = await checkBudget(amount);
       if (!proceed) return;
     }
+
+    setIsConfirmModalOpen(true);
+  };
+
+  const handleConfirmSubmit = async () => {
+    const amount = parseFloat(form.amount);
+    const todayStr = new Date().toISOString().split("T")[0];
+    const isToday = form.next_due_date === todayStr;
 
     try {
       const scheduledPayload = {
@@ -129,6 +139,8 @@ const ScheduledPayments: FC = () => {
       fetchData();
     } catch (err) {
       console.error("Error creating scheduled payment:", err);
+    } finally {
+      setIsConfirmModalOpen(false);
     }
   };
 
@@ -474,6 +486,83 @@ const ScheduledPayments: FC = () => {
           </div>
         )}
       </div>
+
+      <ConfirmModal
+        isOpen={isConfirmModalOpen}
+        title="Confirm Scheduled Payment"
+        message={
+          <div className="space-y-3">
+            <p>
+              <span className="font-semibold text-gray-500 mr-2">Type:</span>
+              <span className="capitalize">
+                {form.transaction_type_id === "1"
+                  ? "Income"
+                  : form.transaction_type_id === "2"
+                    ? "Expense"
+                    : "Transfer"}
+              </span>
+            </p>
+            <p>
+              <span className="font-semibold text-gray-500 mr-2">Amount:</span>
+              <span className="font-bold tabular-nums">Tk. {form.amount}</span>
+            </p>
+            <p>
+              <span className="font-semibold text-gray-500 mr-2">Account:</span>
+              <span>
+                {
+                  accounts.find(
+                    (a) => a.account_id === parseInt(form.account_id),
+                  )?.account_name
+                }
+              </span>
+            </p>
+            {form.transaction_type_id === "3" && form.to_account_id && (
+              <p>
+                <span className="font-semibold text-gray-500 mr-2">
+                  To Account:
+                </span>
+                <span>
+                  {
+                    accounts.find(
+                      (a) => a.account_id === parseInt(form.to_account_id),
+                    )?.account_name
+                  }
+                </span>
+              </p>
+            )}
+            {form.transaction_type_id !== "3" && (
+              <p>
+                <span className="font-semibold text-gray-500 mr-2">
+                  Category:
+                </span>
+                <span>
+                  {categories.find(
+                    (c) => c.category_id === parseInt(form.category_id),
+                  )?.category_name || "Uncategorized"}
+                </span>
+              </p>
+            )}
+            <p>
+              <span className="font-semibold text-gray-500 mr-2">
+                Frequency:
+              </span>
+              <span className="capitalize">{form.frequency}</span>
+            </p>
+            <p>
+              <span className="font-semibold text-gray-500 mr-2">
+                First Due Date:
+              </span>
+              <span>
+                {new Date(form.next_due_date).toLocaleDateString("en-GB")}
+              </span>
+            </p>
+          </div>
+        }
+        onConfirm={handleConfirmSubmit}
+        onCancel={() => setIsConfirmModalOpen(false)}
+        confirmText="Confirm Schedule"
+        cancelText="Cancel"
+      />
     </div>
   );
 };

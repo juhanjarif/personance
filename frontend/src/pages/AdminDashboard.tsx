@@ -136,15 +136,12 @@ const AdminDashboard = () => {
               <h1 className="text-3xl font-black text-gray-900 dark:text-white tracking-tight">
                 System Overview
               </h1>
-              <p className="text-gray-400 text-sm font-medium mt-1 uppercase tracking-widest">
-                Aggregate Financial Performance
-              </p>
             </header>
 
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
               <div className="lg:col-span-2 bg-white dark:bg-gray-800 p-8 rounded-[2rem] border border-gray-100 dark:border-gray-700 shadow-sm">
                 <h3 className="text-[10px] font-black uppercase tracking-[0.2em] text-gray-400 mb-8">
-                  Monthly Income
+                  Monthly Activity
                 </h3>
                 <div className="space-y-6">
                   {monthlyTallies.slice(0, 5).map((tally) => (
@@ -156,7 +153,8 @@ const AdminDashboard = () => {
                           ).toLocaleDateString("en-US", {
                             month: "short",
                             year: "numeric",
-                          })}
+                          })}{" "}
+                          - Income
                         </span>
                         <span className="text-xs font-bold text-gray-900 dark:text-white">
                           Tk. {Number(tally.total_income).toLocaleString()}
@@ -184,7 +182,8 @@ const AdminDashboard = () => {
                           ).toLocaleDateString("en-US", {
                             month: "short",
                             year: "numeric",
-                          })}
+                          })}{" "}
+                          - Expense
                         </span>
                         <span className="text-xs font-bold text-gray-900 dark:text-white">
                           Tk. {Number(tally.total_expense).toLocaleString()}
@@ -256,11 +255,8 @@ const AdminDashboard = () => {
             <header className="flex justify-between items-end">
               <div>
                 <h1 className="text-3xl font-black text-gray-900 dark:text-white tracking-tight">
-                  Global Activity
+                  System Activity
                 </h1>
-                <p className="text-gray-400 text-sm font-medium mt-1 uppercase tracking-widest">
-                  Real-time Transaction Stream
-                </p>
               </div>
               <div className="text-[10px] font-black text-gray-300 uppercase">
                 Showing Last {allTransactions.length} items
@@ -350,9 +346,6 @@ const AdminDashboard = () => {
                 <h1 className="text-3xl font-black text-gray-900 dark:text-white tracking-tight">
                   System Audit Logs
                 </h1>
-                <p className="text-gray-400 text-sm font-medium mt-1 uppercase tracking-widest">
-                  Track Important System Actions
-                </p>
               </div>
               <div className="text-[10px] font-black text-gray-300 uppercase">
                 Showing Last {auditLogs.length} items
